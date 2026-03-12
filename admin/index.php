@@ -7,7 +7,7 @@ $adminPasswordHash = '$2y$10$HxHTUOYiDrl0KYs9dfPQu.qJ8coDSDmz4QFaLZ1h9pNvVcey5fb
 $maxFileSize = 8 * 1024 * 1024; // 8MB por arquivo
 $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
-$photosDir = dirname(__DIR__) . '/assets/fotos';
+$photosDir = dirname(__DIR__) . '/uploads/fotos';
 $manifestFile = $photosDir . '/manifest.json';
 
 if (!is_dir($photosDir)) {
@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="link-desc" style="margin-top: 1rem;">Senha padrão inicial: <code>admin123</code>. Altere no arquivo <code>admin/index.php</code> antes de publicar.</p>
       <?php else: ?>
         <h1>Upload de Fotos</h1>
-        <p>As imagens enviadas serão salvas em <code>assets/fotos/</code> e exibidas automaticamente em <code>fotos.html</code>.</p>
+        <p>As imagens enviadas serão salvas em <code>uploads/fotos/</code> e exibidas automaticamente em <code>fotos.html</code>.</p>
         <form method="post" enctype="multipart/form-data" class="admin-grid">
           <input type="hidden" name="action" value="upload">
           <div class="admin-field">

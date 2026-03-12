@@ -234,7 +234,7 @@ function setupGalleryFromManifest() {
   if (!autoGallery) return;
 
   var status = document.querySelector('[data-galeria-status]');
-  fetch('assets/fotos/manifest.json?ts=' + Date.now(), { cache: 'no-store' })
+  fetch('uploads/fotos/manifest.json?ts=' + Date.now(), { cache: 'no-store' })
     .then(function (response) {
       if (!response.ok) throw new Error('Manifesto não encontrado');
       return response.json();
@@ -258,7 +258,7 @@ function setupGalleryFromManifest() {
         var img = document.createElement('img');
         var figcaption = document.createElement('figcaption');
 
-        img.src = 'assets/fotos/' + encodeURIComponent(file);
+        img.src = 'uploads/fotos/' + encodeURIComponent(file);
         img.alt = caption;
         figcaption.textContent = caption;
 
