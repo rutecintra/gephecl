@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Sora:wght@500;600;700&display=swap');
 
 :root {
-  --bg: #f5f9ff;
-  --bg-soft: #edf3ff;
+  --bg: #f6f2e9;
+  --bg-soft: #efe8da;
   --surface: rgba(255, 255, 255, 0.9);
   --surface-strong: #ffffff;
   --text: #12233a;
@@ -38,10 +38,7 @@ body {
   flex-direction: column;
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at 12% 20%, rgba(38, 146, 224, 0.22), transparent 38%),
-    radial-gradient(circle at 86% 12%, rgba(15, 94, 166, 0.18), transparent 34%),
-    linear-gradient(180deg, #f7fbff 0%, #ecf3ff 46%, #f8fbff 100%);
+  background: var(--bg);
 }
 
 a {
@@ -257,11 +254,10 @@ img {
 
 .page-top {
   margin-bottom: 1.05rem;
-  padding: 1.2rem 1.35rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: linear-gradient(130deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.74));
-  box-shadow: var(--shadow-md);
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -283,12 +279,12 @@ img {
 }
 
 .conteudo {
-  padding: 1.35rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  backdrop-filter: blur(9px);
-  box-shadow: var(--shadow-md);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
 .conteudo p {
@@ -297,13 +293,11 @@ img {
 }
 
 .hero-home {
-  padding: clamp(1.4rem, 2.8vw, 2.2rem);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  background:
-    radial-gradient(circle at 12% 10%, rgba(38, 146, 224, 0.15), transparent 40%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(239, 247, 255, 0.82));
-  box-shadow: var(--shadow-lg);
+  padding: clamp(0.2rem, 1vw, 0.8rem) 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   display: grid;
   grid-template-columns: 1.1fr 0.95fr;
   gap: 1.35rem;
@@ -349,10 +343,10 @@ img {
 }
 
 .hero-metrics li {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 0.75rem 0.85rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.25rem 0;
 }
 
 .hero-metrics strong {
@@ -525,19 +519,20 @@ img {
 .lista-dissertacoes li,
 .lista-livros > li,
 .lista-links li {
-  margin-bottom: 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface-strong);
-  box-shadow: var(--shadow-md);
-  padding: 0.92rem;
+  margin-bottom: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(18, 35, 58, 0.16);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.92rem 0;
 }
 
 .lista-projetos li:last-child,
 .lista-dissertacoes li:last-child,
 .lista-livros > li:last-child,
 .lista-links li:last-child {
-  margin-bottom: 0;
+  border-bottom: 0;
 }
 
 .lista-dissertacoes .autor,
@@ -614,10 +609,10 @@ img {
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(8px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
   text-align: center;
   color: var(--text-soft);
   padding: 0.8rem 1rem;
@@ -833,7 +828,7 @@ img {
   }
 
   .page-top {
-    padding: 1rem;
+    padding: 0.3rem 0;
     flex-direction: column;
     align-items: flex-start;
   }
@@ -843,11 +838,11 @@ img {
   }
 
   .conteudo {
-    padding: 1rem;
+    padding: 0;
   }
 
   .hero-home {
-    padding: 1rem;
+    padding: 0;
   }
 
   .hero-metrics {
