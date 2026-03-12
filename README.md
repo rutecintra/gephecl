@@ -9,6 +9,8 @@ gephecl/
 ├── index.html          # Página inicial
 ├── membros.html        # Membros
 ├── fotos.html          # Galeria de fotos
+├── admin/
+│   └── index.php       # Painel admin (login + upload de fotos)
 ├── projetos-pesquisa.html
 ├── dissertacoes.html
 ├── catalogo-fontes.html
@@ -21,8 +23,11 @@ gephecl/
 │   └── site.js
 ├── assets/
 │   ├── fotos/          # Coloque aqui as fotos da galeria (1.jpg, 2.jpg, etc.)
+│   │   └── manifest.json # Lista automática da galeria (gerenciada pelo admin)
 │   ├── logo-gephecl.png   # Logo do grupo (opcional)
 │   └── palestrante1.jpg   # Fotos do banner (opcional)
+├── uploads/
+│   └── capa.jpg        # Capa da primeira página (opcional)
 └── README.md
 ```
 
@@ -38,8 +43,8 @@ Conforme o **Manual de Hospedagem de Sites - UFAL SITES**:
    - Entre no seu site → aba **Arquivos** → abra a pasta **`public`**.
    - Clique em **Upload**.
    - Você pode:
-     - **Enviar um ZIP:** coloque todos os arquivos (HTML, `css/`, `js/`, `assets/`) em um arquivo `.zip`. Envie o ZIP e marque **“Extrair arquivos comprimidos?”** para que os arquivos sejam extraídos dentro de `public`.
-     - **Ou enviar pasta por pasta:** criar em `public` as pastas `css`, `js`, `assets`, `assets/fotos` e enviar os arquivos em cada uma.
+    - **Enviar um ZIP:** coloque todos os arquivos (HTML, `css/`, `js/`, `assets/`, `uploads/`, `admin/`) em um arquivo `.zip`. Envie o ZIP e marque **“Extrair arquivos comprimidos?”** para que os arquivos sejam extraídos dentro de `public`.
+    - **Ou enviar pasta por pasta:** criar em `public` as pastas `css`, `js`, `assets`, `assets/fotos`, `uploads`, `admin` e enviar os arquivos em cada uma.
 
 4. **Estrutura final no servidor (dentro de `public`):**
 
@@ -53,8 +58,13 @@ Conforme o **Manual de Hospedagem de Sites - UFAL SITES**:
    │   └── site.css
    ├── js/
    │   └── site.js
+   ├── admin/
+   │   └── index.php
+   ├── uploads/
+   │   └── capa.jpg
    └── assets/
        ├── fotos/
+       │   └── manifest.json
        └── (logo e imagens do banner, se usar)
    ```
 
@@ -65,7 +75,16 @@ Conforme o **Manual de Hospedagem de Sites - UFAL SITES**:
 - **Textos e listas:** edite os arquivos `.html` diretamente (por exemplo: dissertações em `dissertacoes.html`, links em `links.html`).
 - **Estilos:** altere `css/site.css`.
 - **Comportamento (menu mobile, slider):** altere `js/site.js`.
-- **Imagens da galeria:** coloque as fotos em `assets/fotos/` com nomes `1.jpg`, `2.jpg`, etc., ou altere os `src` em `fotos.html`.
+- **Imagens da galeria:** use o painel em `admin/index.php` para enviar as imagens pela interface (recomendado).
+- **Capa da home:** coloque a imagem principal em `uploads/capa.jpg` (ela aparece automaticamente no topo da página inicial).
+
+## Painel admin da galeria
+
+- URL do painel: `https://SEU-SITE/admin/index.php`
+- Função: login + upload de múltiplas imagens pela interface.
+- O painel salva as imagens em `assets/fotos/` e atualiza automaticamente o arquivo `assets/fotos/manifest.json`, que é lido por `fotos.html`.
+- Senha inicial do admin: `admin123`.
+- **Importante:** antes de publicar, altere a senha no arquivo `admin/index.php` (variável `$adminPasswordHash`).
 
 ## Navegação do site
 
