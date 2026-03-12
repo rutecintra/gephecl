@@ -1,0 +1,167 @@
+{
+  "site": {
+    "brand": "gephecl",
+    "footerText": "História da Educação, Cultura e Literatura",
+    "homeImage": "uploads/home/capa.jpg"
+  },
+  "pages": {
+    "home": {
+      "title": "Pesquisa em Educação, Cultura e Literatura",
+      "subtitle": "Grupo de Estudo e Pesquisa",
+      "description": "O GEPHECL reúne pesquisadores, docentes e estudantes para produção de conhecimento histórico-educacional em diálogo com memória, cultura e práticas formativas.",
+      "browserTitle": "GEPHECL - Grupo de Estudo e Pesquisa | UFAL CEDU"
+    },
+    "membros": {
+      "title": "Membros",
+      "subtitle": "Grupo de Pesquisa",
+      "description": "Equipe do GEPHECL e registros de atuação do grupo.",
+      "browserTitle": "Membros - GEPHECL | UFAL CEDU"
+    },
+    "fotos": {
+      "title": "Galeria de Fotos",
+      "subtitle": "Registros do grupo",
+      "description": "Registro de atividades, reuniões e eventos do GEPHECL. O conteúdo desta galeria é atualizado automaticamente pelo painel de administração.",
+      "browserTitle": "Galeria de Fotos - GEPHECL | UFAL CEDU"
+    },
+    "projetos": {
+      "title": "Projetos de Pesquisa",
+      "subtitle": "Produção acadêmica",
+      "description": "Projetos em desenvolvimento e pesquisas vinculadas ao grupo.",
+      "browserTitle": "Projetos de Pesquisa - GEPHECL | UFAL CEDU"
+    },
+    "dissertacoes": {
+      "title": "Dissertações",
+      "subtitle": "Produção acadêmica",
+      "description": "Dissertações vinculadas às linhas de estudo e pesquisa do GEPHECL.",
+      "browserTitle": "Dissertações - GEPHECL | UFAL CEDU"
+    },
+    "catalogo": {
+      "title": "Catálogo de Fontes",
+      "subtitle": "Acervo e referências",
+      "description": "Mapeamento de fontes históricas para estudos em educação, cultura e literatura.",
+      "browserTitle": "Catálogo de Fontes - GEPHECL | UFAL CEDU"
+    },
+    "livros": {
+      "title": "Livros e Fragmentos (1840-1963)",
+      "subtitle": "Acervo bibliográfico",
+      "description": "Coleção organizada por categorias e períodos de interesse histórico.",
+      "browserTitle": "Livros e Fragmentos (1840-1963) - GEPHECL | UFAL CEDU"
+    },
+    "contato": {
+      "title": "Contato",
+      "subtitle": "Fale com o grupo",
+      "description": "Informações para contato e agenda de encontros do GEPHECL.",
+      "browserTitle": "Contato - GEPHECL | UFAL CEDU"
+    },
+    "links": {
+      "title": "Links",
+      "subtitle": "Referências externas",
+      "description": "Instituições, acervos e portais relacionados aos temas de estudo do grupo.",
+      "browserTitle": "Links - GEPHECL | UFAL CEDU"
+    }
+  },
+  "menu": [
+    {
+      "id": "menu-home",
+      "label": "Início",
+      "page": "home",
+      "href": "index.html",
+      "parentId": null,
+      "visible": true,
+      "position": 1
+    },
+    {
+      "id": "menu-membros",
+      "label": "Membros",
+      "page": "membros",
+      "href": "membros.html",
+      "parentId": null,
+      "visible": true,
+      "position": 2
+    },
+    {
+      "id": "menu-fotos",
+      "label": "Galeria de Fotos",
+      "page": "fotos",
+      "href": "fotos.html",
+      "parentId": "menu-membros",
+      "visible": true,
+      "position": 1
+    },
+    {
+      "id": "menu-producao",
+      "label": "Produção Acadêmica",
+      "page": "projetos",
+      "href": "projetos-pesquisa.html",
+      "parentId": null,
+      "visible": true,
+      "position": 3
+    },
+    {
+      "id": "menu-projetos",
+      "label": "Projetos de Pesquisa",
+      "page": "projetos",
+      "href": "projetos-pesquisa.html",
+      "parentId": "menu-producao",
+      "visible": true,
+      "position": 1
+    },
+    {
+      "id": "menu-dissertacoes",
+      "label": "Dissertações",
+      "page": "dissertacoes",
+      "href": "dissertacoes.html",
+      "parentId": "menu-producao",
+      "visible": true,
+      "position": 2
+    },
+    {
+      "id": "menu-catalogo",
+      "label": "Catálogo de Fontes",
+      "page": "catalogo",
+      "href": "catalogo-fontes.html",
+      "parentId": null,
+      "visible": true,
+      "position": 4
+    },
+    {
+      "id": "menu-livros",
+      "label": "Livros e Fragmentos (1840-1963)",
+      "page": "livros",
+      "href": "livros-fragmentos.html",
+      "parentId": null,
+      "visible": true,
+      "position": 5
+    },
+    {
+      "id": "menu-contato",
+      "label": "Contato",
+      "page": "contato",
+      "href": "contato.html",
+      "parentId": null,
+      "visible": true,
+      "position": 6
+    },
+    {
+      "id": "menu-links",
+      "label": "Links",
+      "page": "links",
+      "href": "links.html",
+      "parentId": null,
+      "visible": true,
+      "position": 7
+    }
+  ],
+  "documents": {
+    "home": [],
+    "membros": [],
+    "fotos": [],
+    "projetos": [],
+    "dissertacoes": [],
+    "catalogo": [],
+    "livros": [],
+    "contato": [],
+    "links": []
+  },
+  "galleryManifest": "uploads/fotos/manifest.json"
+}

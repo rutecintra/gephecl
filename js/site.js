@@ -1,78 +1,122 @@
 /* GEPHECL - interacoes da UI */
 
+var FALLBACK_CONFIG = {
+  site: {
+    brand: 'gephecl',
+    footerText: 'Historia da Educacao, Cultura e Literatura',
+    homeImage: 'uploads/home/capa.jpg'
+  },
+  pages: {},
+  menu: [],
+  documents: {},
+  galleryManifest: 'uploads/fotos/manifest.json'
+};
+
 document.addEventListener('DOMContentLoaded', function () {
-  setupSharedComponents();
-  setupNavBrand();
-  setupMobileNavToggle();
-  setupMobileDropdown();
-  setupDesktopDropdownHover();
-  setupStickyNavBackground();
-  setupRevealOnScroll();
-  setupCounterAnimations();
-  setupTiltCards();
-  setupGalleryFromManifest();
+  loadSiteConfig().then(function (config) {
+    setupSharedComponents(config);
+    applyPageContent(config);
+    setupNavBrand(config);
+    setupMobileNavToggle();
+    setupMobileDropdown();
+    setupDesktopDropdownHover();
+    setupStickyNavBackground();
+    setupRevealOnScroll();
+    setupCounterAnimations();
+    setupTiltCards();
+    setupGalleryFromManifest(config);
+  });
 });
 
-function setupSharedComponents() {
-  renderNavbarComponent();
-  renderFooterComponent();
+function loadSiteConfig() {
+  return fetch('data/site.json?ts=' + Date.now(), { cache: 'no-store' })
+    .then(function (response) {
+      if (!response.ok) throw new Error('Nao foi possivel carregar configuracoes');
+      return response.json();
+    })
+    .then(function (config) {
+      if (!config || typeof config !== 'object') return FALLBACK_CONFIG;
+      return config;
+    })
+    .catch(function () {
+      return FALLBACK_CONFIG;
+    });
+}
+
+function setupSharedComponents(config) {
+  renderNavbarComponent(config);
+  renderFooterComponent(config);
   renderHomeFeatureCardsComponent();
 }
 
-function renderNavbarComponent() {
+function buildMenuTree(menuItems) {
+  var visibleItems = (Array.isArray(menuItems) ? menuItems : []).filter(function (item) {
+    return item && item.visible !== false;
+  });
+
+  var byParent = {};
+  visibleItems.forEach(function (item) {
+    var parentId = item.parentId || '__root__';
+    if (!byParent[parentId]) byParent[parentId] = [];
+    byParent[parentId].push(item);
+  });
+
+  Object.keys(byParent).forEach(function (key) {
+    byParent[key].sort(function (a, b) {
+      var pa = Number(a.position || 0);
+      var pb = Number(b.position || 0);
+      return pa - pb;
+    });
+  });
+
+  return byParent;
+}
+
+function resolveHref(item) {
+  if (item && item.href) return item.href;
+  if (!item || !item.page) return '#';
+  return item.page === 'home' ? 'index.html' : item.page + '.html';
+}
+
+function collectActivePages(item, byParent) {
+  var pages = [];
+  if (item && item.page) pages.push(item.page);
+  var children = byParent[item.id] || [];
+  children.forEach(function (child) {
+    pages = pages.concat(collectActivePages(child, byParent));
+  });
+  return pages;
+}
+
+function renderNavbarComponent(config) {
   var navRoot = document.querySelector('[data-component="navbar"]');
   if (!navRoot) return;
 
   var activePage = (document.body && document.body.getAttribute('data-page')) || '';
-
-  var navItems = [
-    { label: 'Início', href: 'index.html', active: ['home'] },
-    {
-      label: 'Membros',
-      href: 'membros.html',
-      active: ['membros', 'fotos'],
-      dropdown: [
-        { label: 'Membros', href: 'membros.html' },
-        { label: 'Galeria de Fotos', href: 'fotos.html' }
-      ]
-    },
-    {
-      label: 'Produção Acadêmica',
-      href: 'projetos-pesquisa.html',
-      active: ['projetos', 'dissertacoes'],
-      dropdown: [
-        { label: 'Projetos de Pesquisa', href: 'projetos-pesquisa.html' },
-        { label: 'Dissertações', href: 'dissertacoes.html' }
-      ]
-    },
-    {
-      label: 'Catálogo de Fontes',
-      href: 'catalogo-fontes.html',
-      active: ['catalogo'],
-      dropdown: [
-        { label: 'Catálogo de Fontes', href: 'catalogo-fontes.html' }
-      ]
-    },
-    { label: 'Livros e Fragmentos (1840-1963)', href: 'livros-fragmentos.html', active: ['livros'] },
-    { label: 'Contato', href: 'contato.html', active: ['contato'] },
-    { label: 'Links', href: 'links.html', active: ['links'] }
-  ];
+  var byParent = buildMenuTree(config.menu || []);
+  var topItems = byParent.__root__ || [];
 
   var html = '<ul class="nav-list nav-bar">';
-  navItems.forEach(function (item) {
-    var isActive = item.active && item.active.indexOf(activePage) >= 0;
-    var hasDropdown = Array.isArray(item.dropdown) && item.dropdown.length > 0;
-    html += '<li' + (hasDropdown ? ' class="' + (isActive ? 'has-dropdown active' : 'has-dropdown') + '"' : (isActive ? ' class="active"' : '')) + '>';
-    html += '<a href="' + item.href + '"' + (hasDropdown ? ' class="dropdown-toggle"' : '') + '>' + item.label + '</a>';
+  topItems.forEach(function (item) {
+    var children = byParent[item.id] || [];
+    var hasDropdown = children.length > 0;
+    var activePages = collectActivePages(item, byParent);
+    var isActive = activePages.indexOf(activePage) >= 0;
+
+    var classNames = [];
+    if (hasDropdown) classNames.push('has-dropdown');
+    if (isActive) classNames.push('active');
+
+    html += '<li' + (classNames.length ? ' class="' + classNames.join(' ') + '"' : '') + '>';
+    html += '<a href="' + escapeHtml(resolveHref(item)) + '"' + (hasDropdown ? ' class="dropdown-toggle"' : '') + '>' + escapeHtml(item.label || 'Item') + '</a>';
 
     if (hasDropdown) {
       html += '<ul class="nav-dropdown">';
-      item.dropdown.forEach(function (subitem) {
-        html += '<li><a href="' + subitem.href + '">' + subitem.label + '</a></li>';
+      children.forEach(function (child) {
+        html += '<li><a href="' + escapeHtml(resolveHref(child)) + '">' + escapeHtml(child.label || 'Subitem') + '</a></li>';
       });
       html += '</ul>';
     }
-
     html += '</li>';
   });
   html += '</ul>';
@@ -80,10 +124,21 @@ function renderNavbarComponent() {
   navRoot.innerHTML = html;
 }
 
-function renderFooterComponent() {
+function renderFooterComponent(config) {
   var footerRoot = document.querySelector('[data-component="footer"]');
   if (!footerRoot) return;
-  footerRoot.textContent = 'História da Educação, Cultura e Literatura';
+
+  var footerText = (config.site && config.site.footerText) || 'Historia da Educacao, Cultura e Literatura';
+  footerRoot.textContent = footerText;
+
+  var sep = document.createElement('span');
+  sep.textContent = ' \u00b7 ';
+  var adminLink = document.createElement('a');
+  adminLink.href = 'admin/index.php';
+  adminLink.className = 'admin-subtle-link';
+  adminLink.textContent = 'Painel administrativo';
+  footerRoot.appendChild(sep);
+  footerRoot.appendChild(adminLink);
 }
 
 function renderHomeFeatureCardsComponent() {
@@ -93,24 +148,110 @@ function renderHomeFeatureCardsComponent() {
   var cards = [
     {
       title: 'Produção Acadêmica',
-      description: 'Projetos e pesquisas que articulam história da educação e formação docente.'
+      description: 'Projetos e pesquisas que articulam historia da educacao e formacao docente.'
     },
     {
-      title: 'Catálogo de Fontes',
-      description: 'Mapeamento de acervos e documentos para estudos históricos e educacionais.'
+      title: 'Catalogo de Fontes',
+      description: 'Mapeamento de acervos e documentos para estudos historicos e educacionais.'
     },
     {
       title: 'Livros e Fragmentos',
-      description: 'Repertório de materiais históricos do período de 1840 a 1963.'
+      description: 'Repertorio de materiais historicos do periodo de 1840 a 1963.'
     }
   ];
 
   cardsRoot.innerHTML = cards.map(function (card) {
-    return '<article class="feature-card reveal-on-scroll"><h3>' + card.title + '</h3><p>' + card.description + '</p></article>';
+    return '<article class="feature-card reveal-on-scroll"><h3>' + escapeHtml(card.title) + '</h3><p>' + escapeHtml(card.description) + '</p></article>';
   }).join('');
 }
 
-function setupNavBrand() {
+function applyPageContent(config) {
+  var pageKey = (document.body && document.body.getAttribute('data-page')) || '';
+  if (!pageKey) return;
+
+  var pageConfig = config.pages && config.pages[pageKey];
+  if (!pageConfig) {
+    renderPageDocuments(config, pageKey);
+    return;
+  }
+
+  if (typeof pageConfig.browserTitle === 'string' && pageConfig.browserTitle.trim() !== '') {
+    document.title = pageConfig.browserTitle.trim();
+  }
+
+  if (pageKey === 'home') {
+    var eyebrow = document.querySelector('.hero-eyebrow');
+    var heroTitle = document.querySelector('.hero-title');
+    var heroDescription = document.querySelector('.hero-description');
+    var heroImage = document.querySelector('.hero-media img');
+    var homeImage = config.site && config.site.homeImage;
+
+    if (eyebrow && pageConfig.subtitle) eyebrow.textContent = pageConfig.subtitle;
+    if (heroTitle && pageConfig.title) heroTitle.textContent = pageConfig.title;
+    if (heroDescription && pageConfig.description) heroDescription.textContent = pageConfig.description;
+    if (heroImage && homeImage) heroImage.src = homeImage;
+  } else {
+    var titleEl = document.querySelector('.page-title');
+    if (titleEl && pageConfig.title) titleEl.textContent = pageConfig.title;
+
+    var breadcrumb = document.querySelector('.breadcrumb');
+    if (breadcrumb && pageConfig.title) {
+      breadcrumb.innerHTML = '<a href="index.html">Home</a> / ' + escapeHtml(pageConfig.title);
+    }
+
+    var pageTop = document.querySelector('.page-top');
+    if (pageTop) {
+      upsertTextElement(pageTop, '.page-subtitle', 'page-subtitle', pageConfig.subtitle || '');
+      upsertTextElement(pageTop, '.page-description', 'page-description', pageConfig.description || '');
+    }
+  }
+
+  renderPageDocuments(config, pageKey);
+}
+
+function upsertTextElement(parent, selector, className, text) {
+  var element = parent.querySelector(selector);
+  if (!text || text.trim() === '') {
+    if (element) element.remove();
+    return;
+  }
+  if (!element) {
+    element = document.createElement('p');
+    element.className = className;
+    parent.appendChild(element);
+  }
+  element.textContent = text.trim();
+}
+
+function renderPageDocuments(config, pageKey) {
+  var docs = (config.documents && config.documents[pageKey]) || [];
+  var contentRoot = document.querySelector('.conteudo');
+  if (!contentRoot) return;
+
+  var docsRoot = contentRoot.querySelector('[data-page-documents]');
+  if (!docs.length) {
+    if (docsRoot) docsRoot.remove();
+    return;
+  }
+
+  if (!docsRoot) {
+    docsRoot = document.createElement('section');
+    docsRoot.className = 'page-documents';
+    docsRoot.setAttribute('data-page-documents', 'true');
+    contentRoot.appendChild(docsRoot);
+  }
+
+  var html = '<h3>Documentos</h3><ul class="page-documents-list">';
+  docs.forEach(function (doc) {
+    if (!doc || !doc.file) return;
+    var title = doc.title || doc.file;
+    html += '<li><a href="uploads/docs/' + encodeURIComponent(doc.file) + '" target="_blank" rel="noopener">' + escapeHtml(title) + '</a></li>';
+  });
+  html += '</ul>';
+  docsRoot.innerHTML = html;
+}
+
+function setupNavBrand(config) {
   var navWrap = document.querySelector('.nav-wrap');
   if (!navWrap) return;
 
@@ -119,7 +260,7 @@ function setupNavBrand() {
   if (oldInnerBrand) oldInnerBrand.remove();
 
   var headerTitle = document.querySelector('.site-header h1');
-  var text = headerTitle ? headerTitle.textContent : 'gephecl';
+  var text = (config.site && config.site.brand) || (headerTitle ? headerTitle.textContent : 'gephecl');
 
   var shell = navWrap.closest('.nav-shell');
   if (!shell) {
@@ -327,12 +468,17 @@ function setupTiltCards() {
   });
 }
 
-function setupGalleryFromManifest() {
+function setupGalleryFromManifest(config) {
   var autoGallery = document.querySelector('.galeria[data-auto-gallery]');
   if (!autoGallery) return;
 
   var status = document.querySelector('[data-galeria-status]');
-  fetch('uploads/fotos/manifest.json?ts=' + Date.now(), { cache: 'no-store' })
+  var manifestPath = FALLBACK_CONFIG.galleryManifest;
+  if (config && config.galleryManifest) {
+    manifestPath = config.galleryManifest;
+  }
+
+  fetch(manifestPath + '?ts=' + Date.now(), { cache: 'no-store' })
     .then(function (response) {
       if (!response.ok) throw new Error('Manifesto não encontrado');
       return response.json();
@@ -370,4 +516,13 @@ function setupGalleryFromManifest() {
     .catch(function () {
       if (status) status.textContent = 'Nenhuma foto publicada ainda.';
     });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
