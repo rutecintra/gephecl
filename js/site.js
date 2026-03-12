@@ -1,6 +1,7 @@
 /* GEPHECL - interacoes da UI */
 
 document.addEventListener('DOMContentLoaded', function () {
+  setupSharedComponents();
   setupNavBrand();
   setupMobileNavToggle();
   setupMobileDropdown();
@@ -11,6 +12,103 @@ document.addEventListener('DOMContentLoaded', function () {
   setupTiltCards();
   setupGalleryFromManifest();
 });
+
+function setupSharedComponents() {
+  renderNavbarComponent();
+  renderFooterComponent();
+  renderHomeFeatureCardsComponent();
+}
+
+function renderNavbarComponent() {
+  var navRoot = document.querySelector('[data-component="navbar"]');
+  if (!navRoot) return;
+
+  var activePage = (document.body && document.body.getAttribute('data-page')) || '';
+
+  var navItems = [
+    { label: 'Início', href: 'index.html', active: ['home'] },
+    {
+      label: 'Membros',
+      href: 'membros.html',
+      active: ['membros', 'fotos'],
+      dropdown: [
+        { label: 'Membros', href: 'membros.html' },
+        { label: 'Galeria de Fotos', href: 'fotos.html' }
+      ]
+    },
+    {
+      label: 'Produção Acadêmica',
+      href: 'projetos-pesquisa.html',
+      active: ['projetos', 'dissertacoes'],
+      dropdown: [
+        { label: 'Projetos de Pesquisa', href: 'projetos-pesquisa.html' },
+        { label: 'Dissertações', href: 'dissertacoes.html' }
+      ]
+    },
+    {
+      label: 'Catálogo de Fontes',
+      href: 'catalogo-fontes.html',
+      active: ['catalogo'],
+      dropdown: [
+        { label: 'Catálogo de Fontes', href: 'catalogo-fontes.html' }
+      ]
+    },
+    { label: 'Livros e Fragmentos (1840-1963)', href: 'livros-fragmentos.html', active: ['livros'] },
+    { label: 'Contato', href: 'contato.html', active: ['contato'] },
+    { label: 'Links', href: 'links.html', active: ['links'] }
+  ];
+
+  var html = '<ul class="nav-list nav-bar">';
+  navItems.forEach(function (item) {
+    var isActive = item.active && item.active.indexOf(activePage) >= 0;
+    var hasDropdown = Array.isArray(item.dropdown) && item.dropdown.length > 0;
+    html += '<li' + (hasDropdown ? ' class="' + (isActive ? 'has-dropdown active' : 'has-dropdown') + '"' : (isActive ? ' class="active"' : '')) + '>';
+    html += '<a href="' + item.href + '"' + (hasDropdown ? ' class="dropdown-toggle"' : '') + '>' + item.label + '</a>';
+
+    if (hasDropdown) {
+      html += '<ul class="nav-dropdown">';
+      item.dropdown.forEach(function (subitem) {
+        html += '<li><a href="' + subitem.href + '">' + subitem.label + '</a></li>';
+      });
+      html += '</ul>';
+    }
+
+    html += '</li>';
+  });
+  html += '</ul>';
+
+  navRoot.innerHTML = html;
+}
+
+function renderFooterComponent() {
+  var footerRoot = document.querySelector('[data-component="footer"]');
+  if (!footerRoot) return;
+  footerRoot.textContent = 'História da Educação, Cultura e Literatura';
+}
+
+function renderHomeFeatureCardsComponent() {
+  var cardsRoot = document.querySelector('[data-component="home-feature-cards"]');
+  if (!cardsRoot) return;
+
+  var cards = [
+    {
+      title: 'Produção Acadêmica',
+      description: 'Projetos e pesquisas que articulam história da educação e formação docente.'
+    },
+    {
+      title: 'Catálogo de Fontes',
+      description: 'Mapeamento de acervos e documentos para estudos históricos e educacionais.'
+    },
+    {
+      title: 'Livros e Fragmentos',
+      description: 'Repertório de materiais históricos do período de 1840 a 1963.'
+    }
+  ];
+
+  cardsRoot.innerHTML = cards.map(function (card) {
+    return '<article class="feature-card reveal-on-scroll"><h3>' + card.title + '</h3><p>' + card.description + '</p></article>';
+  }).join('');
+}
 
 function setupNavBrand() {
   var navWrap = document.querySelector('.nav-wrap');

@@ -9,41 +9,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/site.css">
 </head>
-<body>
+<body data-page="home">
   <header class="site-header">
     <div>
       <h1>gephecl</h1>
     </div>
   </header>
 
-  <nav class="nav-wrap">
-    <ul class="nav-list nav-bar">
-      <li class="active"><a href="index.html">Início</a></li>
-      <li class="has-dropdown">
-        <a href="membros.html" class="dropdown-toggle">Membros</a>
-        <ul class="nav-dropdown">
-          <li><a href="membros.html">Membros</a></li>
-          <li><a href="fotos.html">Galeria de Fotos</a></li>
-        </ul>
-      </li>
-      <li class="has-dropdown">
-        <a href="projetos-pesquisa.html" class="dropdown-toggle">Produção Acadêmica</a>
-        <ul class="nav-dropdown">
-          <li><a href="projetos-pesquisa.html">Projetos de Pesquisa</a></li>
-          <li><a href="dissertacoes.html">Dissertações</a></li>
-        </ul>
-      </li>
-      <li class="has-dropdown">
-        <a href="catalogo-fontes.html" class="dropdown-toggle">Catálogo de Fontes</a>
-        <ul class="nav-dropdown">
-          <li><a href="catalogo-fontes.html">Catálogo de Fontes</a></li>
-        </ul>
-      </li>
-      <li><a href="livros-fragmentos.html">Livros e Fragmentos (1840-1963)</a></li>
-      <li><a href="contato.html">Contato</a></li>
-      <li><a href="links.html">Links</a></li>
-    </ul>
-  </nav>
+  <nav class="nav-wrap" data-component="navbar"></nav>
 
   <main class="main-wrap home-main">
     <section class="hero-home reveal-on-scroll">
@@ -70,20 +43,7 @@
       </div>
     </section>
 
-    <section class="feature-grid">
-      <article class="feature-card reveal-on-scroll">
-        <h3>Produção Acadêmica</h3>
-        <p>Projetos e pesquisas que articulam história da educação e formação docente.</p>
-      </article>
-      <article class="feature-card reveal-on-scroll">
-        <h3>Catálogo de Fontes</h3>
-        <p>Mapeamento de acervos e documentos para estudos históricos e educacionais.</p>
-      </article>
-      <article class="feature-card reveal-on-scroll">
-        <h3>Livros e Fragmentos</h3>
-        <p>Repertório de materiais históricos do período de 1840 a 1963.</p>
-      </article>
-    </section>
+    <section class="feature-grid" data-component="home-feature-cards"></section>
 
     <section class="conteudo reveal-on-scroll">
       <section class="bloco-texto">
@@ -100,9 +60,7 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    História da Educação, Cultura e Literatura
-  </footer>
+  <footer class="site-footer" data-component="footer"></footer>
 
   <script src="js/site.js"></script>
 </body>
