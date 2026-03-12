@@ -1,0 +1,486 @@
+/* GEPHECL - UFAL CEDU - Estilos do site */
+:root {
+  --cor-primaria: #5c2e1a;
+  --cor-primaria-escura: #3d1f12;
+  --cor-destaque: #8b3d2a;
+  --cor-texto: #2c2c2c;
+  --cor-texto-claro: #555;
+  --cor-fundo: #f8f6f3;
+  --cor-branco: #fff;
+  --sombra: 0 2px 12px rgba(0,0,0,0.08);
+  --transicao: 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+}
+
+a {
+  color: var(--cor-destaque);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Header */
+.site-header {
+  background: var(--cor-primaria);
+  color: var(--cor-branco);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.site-header .subtitulo {
+  font-size: 0.9rem;
+  opacity: 0.95;
+  margin-top: 0.15rem;
+}
+
+.site-header .instituicao {
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.site-header .instituicao .cedu {
+  color: #e8b4a0;
+  font-weight: 600;
+}
+
+/* Navegação */
+.nav-wrap {
+  background: var(--cor-primaria-escura);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--sombra);
+}
+
+.nav-bar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+.nav-list > li {
+  position: relative;
+}
+
+.nav-list > li > a {
+  display: block;
+  padding: 0.85rem 1rem;
+  color: var(--cor-branco);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: background var(--transicao);
+}
+
+.nav-list > li > a:hover,
+.nav-list > li.active > a {
+  background: rgba(255,255,255,0.1);
+}
+
+.nav-list .dropdown-toggle::after {
+  content: '';
+  display: inline-block;
+  margin-left: 0.35rem;
+  vertical-align: 0.2em;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background: var(--cor-branco);
+  box-shadow: var(--sombra);
+  border-radius: 0 0 6px 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity var(--transicao), transform var(--transicao);
+}
+
+.nav-list > li:hover .nav-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dropdown a {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--cor-texto);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.nav-dropdown a:hover {
+  background: var(--cor-fundo);
+  color: var(--cor-destaque);
+  text-decoration: none;
+}
+
+/* Container principal */
+.main-wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.page-title {
+  margin: 0 0 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--cor-primaria-escura);
+}
+
+.conteudo {
+  background: var(--cor-branco);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+}
+
+/* Banner / Slider (home) */
+.banner {
+  background: linear-gradient(135deg, var(--cor-primaria-escura) 0%, var(--cor-primaria) 100%);
+  color: var(--cor-branco);
+  padding: 2rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.banner h2 {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.banner .palestrantes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.banner .palestrante {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.banner .palestrante .foto {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  object-fit: cover;
+}
+
+.banner .minicurso {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.banner .detalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.banner .detalhes span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.banner-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: var(--cor-branco);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: background var(--transicao);
+}
+
+.banner-nav:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.banner-nav.prev { left: 0.5rem; }
+.banner-nav.next { right: 0.5rem; }
+
+/* Bloco de texto (home) */
+.bloco-texto h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  color: var(--cor-primaria-escura);
+}
+
+.bloco-texto p {
+  margin: 0 0 1rem;
+  color: var(--cor-texto-claro);
+}
+
+.bloco-texto p:last-child {
+  margin-bottom: 0;
+}
+
+/* Logo / identidade (home) */
+.identidade {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.identidade .logo-circulo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 0.75rem;
+  background: #e8e4df;
+  object-fit: cover;
+}
+
+.identidade .nome-completo {
+  font-size: 0.85rem;
+  color: var(--cor-texto-claro);
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Listas de conteúdo */
+.lista-projetos,
+.lista-dissertacoes,
+.lista-livros,
+.lista-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-projetos li,
+.lista-dissertacoes li,
+.lista-livros li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.lista-projetos li:last-child,
+.lista-dissertacoes li:last-child,
+.lista-livros li:last-child {
+  border-bottom: none;
+}
+
+.lista-projetos a,
+.lista-dissertacoes a,
+.lista-livros a {
+  font-weight: 500;
+}
+
+.lista-dissertacoes .autor {
+  font-weight: 600;
+  color: var(--cor-texto);
+  margin-bottom: 0.25rem;
+}
+
+.lista-dissertacoes .titulo-desc {
+  color: var(--cor-texto-claro);
+  font-size: 0.95rem;
+}
+
+.lista-livros .categoria {
+  font-weight: 700;
+  color: var(--cor-primaria-escura);
+  margin: 1rem 0 0.5rem;
+}
+
+.lista-livros .categoria:first-child {
+  margin-top: 0;
+}
+
+.lista-livros ul {
+  margin: 0 0 0 1rem;
+  padding: 0;
+}
+
+.lista-livros ul li {
+  padding: 0.35rem 0;
+  border: none;
+}
+
+.lista-links li {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.lista-links .link-titulo {
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.lista-links .link-url {
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.lista-links .link-desc {
+  font-size: 0.9rem;
+  color: var(--cor-texto-claro);
+  margin-top: 0.25rem;
+}
+
+/* Galeria de fotos */
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.galeria figure {
+  margin: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--sombra);
+  background: #eee;
+  min-height: 120px;
+}
+
+.galeria img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+
+.galeria figcaption {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--cor-texto-claro);
+}
+
+/* Contato */
+.contato p {
+  margin: 0 0 0.75rem;
+}
+
+/* Footer */
+.site-footer {
+  background: var(--cor-primaria-escura);
+  color: var(--cor-branco);
+  text-align: center;
+  padding: 1rem 1.5rem;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-header .instituicao {
+    text-align: left;
+  }
+
+  .nav-list {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav-list > li {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-dropdown {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    display: none;
+    background: rgba(0,0,0,0.2);
+    border-radius: 0;
+    padding-left: 1rem;
+  }
+
+  .nav-list > li.dropdown-open .nav-dropdown {
+    display: block;
+  }
+
+  .main-wrap {
+    padding: 1.25rem 1rem;
+  }
+
+  .conteudo {
+    padding: 1.25rem;
+  }
+
+  .banner .palestrantes {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .banner-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+}
