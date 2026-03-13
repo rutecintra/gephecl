@@ -4,7 +4,8 @@ var FALLBACK_CONFIG = {
   site: {
     brand: 'gephecl',
     footerText: 'Historia da Educacao, Cultura e Literatura',
-    homeImage: 'uploads/home/capa.jpg'
+    homeImage: 'uploads/home/capa.jpg',
+    galleryDefaultView: 'grid'
   },
   pages: {},
   menu: [],
@@ -469,7 +470,7 @@ function setupTiltCards() {
 }
 
 function setupGalleryFromManifest(config) {
-  var autoGallery = document.querySelector('.galeria[data-auto-gallery]');
+  var autoGallery = document.querySelector('[data-auto-gallery-grid]') || document.querySelector('.galeria[data-auto-gallery]');
   if (!autoGallery) return;
 
   var status = document.querySelector('[data-galeria-status]');
@@ -484,7 +485,8 @@ function setupGalleryFromManifest(config) {
       return response.json();
     })
     .then(function (items) {
-      if (!Array.isArray(items) || items.length === 0) {
+      var normalizedItems = normalizeGalleryItems(items);
+      if (!normalizedItems.length) {
         if (status) status.textContent = 'Nenhuma foto publicada ainda.';
         return;
       }
@@ -492,30 +494,154 @@ function setupGalleryFromManifest(config) {
       autoGallery.innerHTML = '';
       if (status) status.style.display = 'none';
 
-      items.forEach(function (item, idx) {
-        var file = typeof item === 'string' ? item : item.file;
-        if (!file) return;
-
-        var caption = (typeof item === 'object' && item.caption) ? item.caption : ('Foto ' + (idx + 1));
+      normalizedItems.forEach(function (item, idx) {
         var figure = document.createElement('figure');
         figure.className = 'reveal-on-scroll';
         var img = document.createElement('img');
         var figcaption = document.createElement('figcaption');
+        var titleEl = document.createElement('strong');
+        var captionEl = document.createElement('span');
 
-        img.src = 'uploads/fotos/' + encodeURIComponent(file);
-        img.alt = caption;
-        figcaption.textContent = caption;
+        img.src = 'uploads/fotos/' + encodeURIComponent(item.file);
+        img.alt = item.title || ('Foto ' + (idx + 1));
+
+        titleEl.className = 'gallery-card-title';
+        titleEl.textContent = item.title || ('Foto ' + (idx + 1));
+        captionEl.className = 'gallery-card-caption';
+        captionEl.textContent = item.caption || '';
+
+        figcaption.appendChild(titleEl);
+        if (item.caption) {
+          figcaption.appendChild(captionEl);
+        }
 
         figure.appendChild(img);
         figure.appendChild(figcaption);
         autoGallery.appendChild(figure);
       });
 
+      setupGallerySlider(normalizedItems);
+      setupGalleryViewSwitch(normalizedItems.length > 0, getDefaultGalleryView(config));
       setupRevealOnScroll();
     })
     .catch(function () {
       if (status) status.textContent = 'Nenhuma foto publicada ainda.';
     });
+}
+
+function normalizeGalleryItems(items) {
+  if (!Array.isArray(items)) return [];
+  var normalized = [];
+
+  items.forEach(function (item, idx) {
+    if (typeof item === 'string' && item.trim() !== '') {
+      normalized.push({
+        file: item,
+        title: 'Foto ' + (idx + 1),
+        caption: ''
+      });
+      return;
+    }
+    if (!item || typeof item !== 'object' || !item.file) return;
+
+    var title = '';
+    if (typeof item.title === 'string' && item.title.trim() !== '') {
+      title = item.title.trim();
+    } else if (typeof item.caption === 'string' && item.caption.trim() !== '') {
+      title = item.caption.trim();
+    } else {
+      title = 'Foto ' + (idx + 1);
+    }
+
+    normalized.push({
+      file: item.file,
+      title: title,
+      caption: typeof item.caption === 'string' ? item.caption.trim() : ''
+    });
+  });
+
+  return normalized;
+}
+
+function getDefaultGalleryView(config) {
+  var defaultView = config && config.site ? config.site.galleryDefaultView : 'grid';
+  return defaultView === 'slider' ? 'slider' : 'grid';
+}
+
+function setupGalleryViewSwitch(hasItems, defaultView) {
+  var switchRoot = document.querySelector('[data-gallery-view-switch]');
+  var grid = document.querySelector('[data-auto-gallery-grid]');
+  var slider = document.querySelector('[data-auto-gallery-slider]');
+  if (!switchRoot || !grid || !slider) return;
+
+  if (!hasItems) {
+    switchRoot.style.display = 'none';
+    slider.hidden = true;
+    return;
+  }
+  switchRoot.style.display = '';
+
+  function applyView(view) {
+    var buttons = switchRoot.querySelectorAll('[data-gallery-view]');
+    buttons.forEach(function (btn) {
+      btn.classList.toggle('is-active', btn.getAttribute('data-gallery-view') === view);
+    });
+    if (view === 'slider') {
+      slider.hidden = false;
+      grid.style.display = 'none';
+    } else {
+      slider.hidden = true;
+      grid.style.display = '';
+    }
+  }
+
+  if (switchRoot.dataset.bound !== '1') {
+    switchRoot.querySelectorAll('[data-gallery-view]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var view = button.getAttribute('data-gallery-view') || 'grid';
+        applyView(view);
+      });
+    });
+    switchRoot.dataset.bound = '1';
+  }
+
+  applyView(defaultView === 'slider' ? 'slider' : 'grid');
+}
+
+function setupGallerySlider(items) {
+  var slider = document.querySelector('[data-auto-gallery-slider]');
+  if (!slider || !items.length) return;
+
+  var imageEl = slider.querySelector('[data-gallery-slider-image]');
+  var titleEl = slider.querySelector('[data-gallery-slider-title]');
+  var captionEl = slider.querySelector('[data-gallery-slider-caption]');
+  var prevBtn = slider.querySelector('[data-gallery-prev]');
+  var nextBtn = slider.querySelector('[data-gallery-next]');
+  if (!imageEl || !titleEl || !captionEl || !prevBtn || !nextBtn) return;
+
+  var index = 0;
+  function renderCurrent() {
+    var item = items[index];
+    imageEl.src = 'uploads/fotos/' + encodeURIComponent(item.file);
+    imageEl.alt = item.title || 'Foto da galeria';
+    titleEl.textContent = item.title || 'Foto';
+    captionEl.textContent = item.caption || '';
+    captionEl.style.display = item.caption ? '' : 'none';
+  }
+
+  if (slider.dataset.bound !== '1') {
+    prevBtn.addEventListener('click', function () {
+      index = (index - 1 + items.length) % items.length;
+      renderCurrent();
+    });
+    nextBtn.addEventListener('click', function () {
+      index = (index + 1) % items.length;
+      renderCurrent();
+    });
+    slider.dataset.bound = '1';
+  }
+
+  renderCurrent();
 }
 
 function escapeHtml(value) {

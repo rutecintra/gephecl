@@ -2,7 +2,8 @@
   "site": {
     "brand": "gephecl",
     "footerText": "História da Educação, Cultura e Literatura",
-    "homeImage": "uploads/home/capa.jpg"
+    "homeImage": "uploads/home/capa.jpg",
+    "galleryDefaultView": "grid"
   },
   "pages": {
     "home": {
@@ -20,7 +21,7 @@
     "fotos": {
       "title": "Galeria de Fotos",
       "subtitle": "Registros do grupo",
-      "description": "Registro de atividades, reuniões e eventos do GEPHECL. O conteúdo desta galeria é atualizado automaticamente pelo painel de administração.",
+      "description": "",
       "browserTitle": "Galeria de Fotos - GEPHECL | UFAL CEDU"
     },
     "projetos": {

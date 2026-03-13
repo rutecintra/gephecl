@@ -572,6 +572,38 @@ img {
   margin: 0 0 1rem;
 }
 
+.gallery-view-switch {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.gallery-view-btn {
+  border: 1px solid rgba(13, 66, 114, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #244364;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  width: 42px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gallery-view-btn.is-active {
+  border-color: #0f5ea6;
+  color: #fff;
+  background: #0f5ea6;
+}
+
 .galeria {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -596,6 +628,70 @@ img {
 .galeria figcaption {
   padding: 0.66rem 0.74rem;
   font-size: 0.84rem;
+  color: var(--text-soft);
+}
+
+.gallery-card-title {
+  display: block;
+  color: var(--brand-dark);
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.gallery-card-caption {
+  display: block;
+}
+
+.galeria-slider {
+  margin-top: 0.3rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.galeria-slider[hidden] {
+  display: none;
+}
+
+.galeria-slider-nav {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(13, 66, 114, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f5ea6;
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.galeria-slider-figure {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.galeria-slider-figure img {
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
+}
+
+.galeria-slider-figure figcaption {
+  padding: 0.75rem 0.85rem;
+}
+
+.galeria-slider-figure strong {
+  display: block;
+  color: var(--brand-dark);
+  margin-bottom: 0.3rem;
+}
+
+.galeria-slider-figure span {
   color: var(--text-soft);
 }
 
@@ -1057,6 +1153,14 @@ img {
 
   .feature-grid {
     grid-template-columns: 1fr;
+  }
+
+  .galeria-slider {
+    grid-template-columns: 1fr;
+  }
+
+  .galeria-slider-nav {
+    justify-self: center;
   }
 }
 

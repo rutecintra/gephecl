@@ -24,9 +24,27 @@
       <p class="breadcrumb"><a href="index.html">Home</a> / Galeria de Fotos</p>
     </section>
     <div class="conteudo reveal-on-scroll">
-      <p class="lista-links link-desc" style="margin-bottom: 1.5rem;">Registro de atividades, reuniões e eventos do GEPHECL. O conteúdo desta galeria é atualizado automaticamente pelo painel de administração.</p>
+      <div class="gallery-view-switch" data-gallery-view-switch>
+        <button type="button" class="gallery-view-btn is-active" data-gallery-view="grid" title="Itens pequenos" aria-label="Itens pequenos">
+          <span aria-hidden="true">▦</span>
+        </button>
+        <button type="button" class="gallery-view-btn" data-gallery-view="slider" title="Slide" aria-label="Slide">
+          <span aria-hidden="true">▭</span>
+        </button>
+      </div>
       <p class="galeria-status" data-galeria-status>Carregando fotos...</p>
-      <div class="galeria" data-auto-gallery></div>
+      <div class="galeria" data-auto-gallery-grid></div>
+      <div class="galeria-slider" data-auto-gallery-slider hidden>
+        <button type="button" class="galeria-slider-nav" data-gallery-prev aria-label="Foto anterior">←</button>
+        <figure class="galeria-slider-figure">
+          <img src="" alt="" data-gallery-slider-image>
+          <figcaption>
+            <strong data-gallery-slider-title></strong>
+            <span data-gallery-slider-caption></span>
+          </figcaption>
+        </figure>
+        <button type="button" class="galeria-slider-nav" data-gallery-next aria-label="Próxima foto">→</button>
+      </div>
     </div>
   </main>
 
