@@ -8,6 +8,7 @@ var FALLBACK_CONFIG = {
     galleryDefaultView: 'grid'
   },
   pages: {},
+  pageComponents: {},
   menu: [],
   documents: {},
   galleryManifest: 'uploads/fotos/manifest.json'
@@ -60,7 +61,6 @@ function fetchJsonNoStore(path) {
 function setupSharedComponents(config) {
   renderNavbarComponent(config);
   renderFooterComponent(config);
-  renderHomeFeatureCardsComponent();
 }
 
 function buildMenuTree(menuItems) {
@@ -156,10 +156,14 @@ function renderFooterComponent(config) {
 }
 
 function renderHomeFeatureCardsComponent() {
+  renderHomeFeatureCardsComponentFromItems([]);
+}
+
+function renderHomeFeatureCardsComponentFromItems(cards) {
   var cardsRoot = document.querySelector('[data-component="home-feature-cards"]');
   if (!cardsRoot) return;
 
-  var cards = [
+  var normalizedCards = Array.isArray(cards) && cards.length ? cards : [
     {
       title: 'Produção Acadêmica',
       description: 'Projetos e pesquisas que articulam historia da educacao e formacao docente.'
@@ -174,7 +178,7 @@ function renderHomeFeatureCardsComponent() {
     }
   ];
 
-  cardsRoot.innerHTML = cards.map(function (card) {
+  cardsRoot.innerHTML = normalizedCards.map(function (card) {
     return '<article class="feature-card reveal-on-scroll"><h3>' + escapeHtml(card.title) + '</h3><p>' + escapeHtml(card.description) + '</p></article>';
   }).join('');
 }
@@ -193,34 +197,332 @@ function applyPageContent(config) {
     document.title = pageConfig.browserTitle.trim();
   }
 
+  var pageComponents = getPageComponentsForPage(config, pageKey);
+
   if (pageKey === 'home') {
+    var heroComponent = findFirstComponent(pageComponents, 'home-hero');
+    var heroSettings = heroComponent && heroComponent.settings ? heroComponent.settings : {};
+    var cardsComponent = findFirstComponent(pageComponents, 'cards');
+    var detailsComponents = filterComponentsByType(pageComponents, 'details');
+
     var eyebrow = document.querySelector('.hero-eyebrow');
     var heroTitle = document.querySelector('.hero-title');
     var heroDescription = document.querySelector('.hero-description');
     var heroImage = document.querySelector('.hero-media img');
-    var homeImage = config.site && config.site.homeImage;
+    var heroPrimary = document.querySelector('.hero-actions .btn-primary');
+    var heroSecondary = document.querySelector('.hero-actions .btn-secondary');
+    var homeImage = (heroSettings && heroSettings.image) || (config.site && config.site.homeImage);
 
-    if (eyebrow && pageConfig.subtitle) eyebrow.textContent = pageConfig.subtitle;
-    if (heroTitle && pageConfig.title) heroTitle.textContent = pageConfig.title;
-    if (heroDescription && pageConfig.description) heroDescription.textContent = pageConfig.description;
+    if (eyebrow && (heroSettings.subtitle || pageConfig.subtitle)) eyebrow.textContent = (heroSettings.subtitle || pageConfig.subtitle);
+    if (heroTitle && (heroSettings.title || pageConfig.title)) heroTitle.textContent = (heroSettings.title || pageConfig.title);
+    if (heroDescription && (heroSettings.description || pageConfig.description)) heroDescription.textContent = (heroSettings.description || pageConfig.description);
     if (heroImage && homeImage) heroImage.src = homeImage;
+    if (heroPrimary && heroSettings.primaryLabel) {
+      heroPrimary.textContent = heroSettings.primaryLabel;
+      if (heroSettings.primaryLink) heroPrimary.href = heroSettings.primaryLink;
+    }
+    if (heroSecondary && heroSettings.secondaryLabel) {
+      heroSecondary.textContent = heroSettings.secondaryLabel;
+      if (heroSettings.secondaryLink) heroSecondary.href = heroSettings.secondaryLink;
+    }
+
+    if (cardsComponent && Array.isArray(cardsComponent.items)) {
+      renderHomeFeatureCardsComponentFromItems(cardsComponent.items.map(function (item) {
+        return {
+          title: item.title || 'Card',
+          description: item.description || ''
+        };
+      }));
+    } else {
+      renderHomeFeatureCardsComponent();
+    }
+
+    if (detailsComponents.length) {
+      renderDetailsComponents(document.querySelector('.conteudo'), detailsComponents, true);
+    }
   } else {
+    var titleSubtitleComponent = findFirstComponent(pageComponents, 'title-subtitle');
+    var titleSubtitleSettings = titleSubtitleComponent && titleSubtitleComponent.settings ? titleSubtitleComponent.settings : {};
+    var resolvedTitle = titleSubtitleSettings.title || pageConfig.title || '';
+    var resolvedSubtitle = titleSubtitleSettings.subtitle || '';
+
     var titleEl = document.querySelector('.page-title');
-    if (titleEl && pageConfig.title) titleEl.textContent = pageConfig.title;
+    if (titleEl && resolvedTitle) titleEl.textContent = resolvedTitle;
 
     var breadcrumb = document.querySelector('.breadcrumb');
-    if (breadcrumb && pageConfig.title) {
-      breadcrumb.innerHTML = '<a href="index.html">Home</a> / ' + escapeHtml(pageConfig.title);
+    if (breadcrumb && resolvedTitle) {
+      breadcrumb.innerHTML = '<a href="index.html">Home</a> / ' + escapeHtml(resolvedTitle);
     }
 
     var pageTop = document.querySelector('.page-top');
     if (pageTop) {
-      upsertTextElement(pageTop, '.page-subtitle', 'page-subtitle', pageConfig.subtitle || '');
-      upsertTextElement(pageTop, '.page-description', 'page-description', pageConfig.description || '');
+      upsertTextElement(pageTop, '.page-subtitle', 'page-subtitle', resolvedSubtitle);
+      upsertTextElement(pageTop, '.page-description', 'page-description', '');
     }
   }
 
+  renderDynamicComponents(config, pageKey, pageComponents);
   renderPageDocuments(config, pageKey);
+}
+
+function getPageComponentsForPage(config, pageKey) {
+  if (!config || !config.pageComponents || !config.pageComponents[pageKey]) return [];
+  return Array.isArray(config.pageComponents[pageKey]) ? config.pageComponents[pageKey] : [];
+}
+
+function findFirstComponent(components, type) {
+  if (!Array.isArray(components)) return null;
+  for (var i = 0; i < components.length; i += 1) {
+    if (components[i] && components[i].type === type) {
+      return components[i];
+    }
+  }
+  return null;
+}
+
+function filterComponentsByType(components, type) {
+  if (!Array.isArray(components)) return [];
+  return components.filter(function (component) {
+    return component && component.type === type;
+  });
+}
+
+function renderDynamicComponents(config, pageKey, pageComponents) {
+  if (!Array.isArray(pageComponents) || !pageComponents.length) return;
+  var contentRoot = document.querySelector('.conteudo');
+  if (!contentRoot) return;
+
+  var reservedTypes = pageKey === 'home' ? ['home-hero', 'cards', 'details'] : ['title-subtitle'];
+  var dynamicComponents = pageComponents.filter(function (component) {
+    return component && reservedTypes.indexOf(component.type) < 0;
+  });
+  if (!dynamicComponents.length) return;
+
+  var dynamicRoot = contentRoot.querySelector('[data-dynamic-root]');
+  if (!dynamicRoot) {
+    dynamicRoot = document.createElement('div');
+    dynamicRoot.setAttribute('data-dynamic-root', '1');
+    contentRoot.appendChild(dynamicRoot);
+  }
+  dynamicRoot.innerHTML = '';
+
+  dynamicComponents.forEach(function (component, index) {
+    var type = component.type || '';
+    if (type === 'details') {
+      dynamicRoot.appendChild(buildDetailsNode(component, index));
+      return;
+    }
+    if (type === 'cards') {
+      dynamicRoot.appendChild(buildCardsNode(component, index));
+      return;
+    }
+    if (type === 'links') {
+      dynamicRoot.appendChild(buildLinksNode(component, index));
+      return;
+    }
+    if (type === 'documents') {
+      dynamicRoot.appendChild(buildDocumentsNode(component, index));
+      return;
+    }
+    if (type === 'photo-carousel') {
+      dynamicRoot.appendChild(buildPhotoCarouselNode(component, index));
+      return;
+    }
+    if (type === 'photo-slider') {
+      dynamicRoot.appendChild(buildPhotoSliderNode(component, index));
+      return;
+    }
+    if (type === 'gallery') {
+      dynamicRoot.appendChild(buildGalleryNode(component, index));
+    }
+  });
+}
+
+function renderDetailsComponents(contentRoot, components, replaceContent) {
+  if (!contentRoot || !Array.isArray(components) || !components.length) return;
+  if (replaceContent) {
+    contentRoot.innerHTML = '';
+  }
+  components.forEach(function (component, index) {
+    contentRoot.appendChild(buildDetailsNode(component, index));
+  });
+}
+
+function buildSectionTitle(title, tagName) {
+  if (!title || !String(title).trim()) return null;
+  var el = document.createElement(tagName || 'h3');
+  el.textContent = String(title).trim();
+  return el;
+}
+
+function buildDetailsNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section dynamic-details reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title, 'h3');
+  if (title) node.appendChild(title);
+  var text = (component.settings && component.settings.text) || '';
+  if (text) {
+    var p = document.createElement('p');
+    p.textContent = text;
+    node.appendChild(p);
+  }
+  return node;
+}
+
+function buildCardsNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title, 'h3');
+  if (title) node.appendChild(title);
+  var grid = document.createElement('div');
+  grid.className = 'feature-grid';
+  (component.items || []).forEach(function (item) {
+    var card = document.createElement('article');
+    card.className = 'feature-card';
+    card.innerHTML = '<h3>' + escapeHtml(item.title || 'Card') + '</h3><p>' + escapeHtml(item.description || '') + '</p>';
+    grid.appendChild(card);
+  });
+  node.appendChild(grid);
+  return node;
+}
+
+function buildLinksNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title, 'h3');
+  if (title) node.appendChild(title);
+  var list = document.createElement('ul');
+  list.className = 'lista-links';
+  (component.items || []).forEach(function (item) {
+    if (!item.url) return;
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="link-titulo">' + escapeHtml(item.title || item.url) + '</span><div class="link-url"><a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.url) + '</a></div>';
+    list.appendChild(li);
+  });
+  node.appendChild(list);
+  return node;
+}
+
+function buildDocumentsNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section page-documents reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title || 'Documentos', 'h3');
+  if (title) node.appendChild(title);
+  var list = document.createElement('ul');
+  list.className = 'page-documents-list';
+  (component.items || []).forEach(function (item) {
+    if (!item.file) return;
+    var li = document.createElement('li');
+    var href = item.file;
+    var label = item.title || item.file.split('/').pop();
+    var desc = item.description ? '<span class="dynamic-doc-desc">' + escapeHtml(item.description) + '</span>' : '';
+    li.innerHTML = '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + escapeHtml(label) + '</a>' + desc;
+    list.appendChild(li);
+  });
+  node.appendChild(list);
+  return node;
+}
+
+function buildPhotoCarouselNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title, 'h3');
+  if (title) node.appendChild(title);
+
+  var items = component.items || [];
+  if (!items.length) return node;
+  var slider = document.createElement('div');
+  slider.className = 'galeria-slider';
+  slider.innerHTML = '<button type="button" class="galeria-slider-nav" data-dyn-prev>&larr;</button><figure class="galeria-slider-figure"><img src="" alt="" data-dyn-image><figcaption><strong data-dyn-title></strong><span data-dyn-caption></span></figcaption></figure><button type="button" class="galeria-slider-nav" data-dyn-next>&rarr;</button>';
+  setupManualSlider(slider, items);
+  node.appendChild(slider);
+  return node;
+}
+
+function buildPhotoSliderNode(component, index) {
+  var node = buildPhotoCarouselNode(component, index);
+  var slider = node.querySelector('.galeria-slider');
+  if (slider) {
+    slider.classList.add('dynamic-autoplay-slider');
+    setupAutoPlaySlider(slider, component.items || []);
+  }
+  return node;
+}
+
+function buildGalleryNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+  var title = buildSectionTitle(component.title, 'h3');
+  if (title) node.appendChild(title);
+
+  var items = component.items || [];
+  if (!items.length) return node;
+  var view = component.settings && component.settings.view === 'slider' ? 'slider' : 'grid';
+
+  if (view === 'slider') {
+    var slider = document.createElement('div');
+    slider.className = 'galeria-slider';
+    slider.innerHTML = '<button type="button" class="galeria-slider-nav" data-dyn-prev>&larr;</button><figure class="galeria-slider-figure"><img src="" alt="" data-dyn-image><figcaption><strong data-dyn-title></strong><span data-dyn-caption></span></figcaption></figure><button type="button" class="galeria-slider-nav" data-dyn-next>&rarr;</button>';
+    setupManualSlider(slider, items);
+    node.appendChild(slider);
+    return node;
+  }
+
+  var grid = document.createElement('div');
+  grid.className = 'galeria';
+  items.forEach(function (item, itemIdx) {
+    if (!item.file) return;
+    var figure = document.createElement('figure');
+    figure.innerHTML = '<img src="' + escapeHtml(item.file) + '" alt="' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '"><figcaption><strong class="gallery-card-title">' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '</strong><span class="gallery-card-caption">' + escapeHtml(item.subtitle || '') + '</span></figcaption>';
+    grid.appendChild(figure);
+  });
+  node.appendChild(grid);
+  return node;
+}
+
+function setupManualSlider(sliderRoot, items) {
+  var imageEl = sliderRoot.querySelector('[data-dyn-image]');
+  var titleEl = sliderRoot.querySelector('[data-dyn-title]');
+  var captionEl = sliderRoot.querySelector('[data-dyn-caption]');
+  var prevBtn = sliderRoot.querySelector('[data-dyn-prev]');
+  var nextBtn = sliderRoot.querySelector('[data-dyn-next]');
+  if (!imageEl || !titleEl || !captionEl || !prevBtn || !nextBtn || !items.length) return;
+
+  var idx = 0;
+  var normalized = items.filter(function (item) { return item && item.file; });
+  if (!normalized.length) return;
+
+  function render() {
+    var item = normalized[idx];
+    imageEl.src = item.file;
+    imageEl.alt = item.title || 'Foto';
+    titleEl.textContent = item.title || 'Foto';
+    captionEl.textContent = item.subtitle || '';
+    captionEl.style.display = item.subtitle ? '' : 'none';
+  }
+  prevBtn.addEventListener('click', function () {
+    idx = (idx - 1 + normalized.length) % normalized.length;
+    render();
+  });
+  nextBtn.addEventListener('click', function () {
+    idx = (idx + 1) % normalized.length;
+    render();
+  });
+  render();
+}
+
+function setupAutoPlaySlider(sliderRoot, items) {
+  var nextBtn = sliderRoot.querySelector('[data-dyn-next]');
+  if (!nextBtn || !items || items.length < 2) return;
+  setInterval(function () {
+    nextBtn.click();
+  }, 4200);
 }
 
 function upsertTextElement(parent, selector, className, text) {
@@ -500,7 +802,7 @@ function setupGalleryFromManifest(config) {
     .then(function (items) {
       var normalizedItems = normalizeGalleryItems(items);
       if (!normalizedItems.length) {
-        if (status) status.textContent = 'Nenhuma foto publicada ainda.';
+        if (status) status.remove();
         return;
       }
 
@@ -538,7 +840,7 @@ function setupGalleryFromManifest(config) {
       setupRevealOnScroll();
     })
     .catch(function () {
-      if (status) status.textContent = 'Nenhuma foto publicada ainda.';
+      if (status) status.remove();
     });
 }
 

@@ -157,19 +157,160 @@
         "home": [],
         "membros": [],
         "fotos": [],
-        "projetos": [
-            {
-                "id": "doc-eaf62f1fd50e",
-                "title": "test",
-                "file": "20260313-024620-0e3adf8a-manual-14e7f6c9.pdf",
-                "uploadedAt": "2026-03-13T02:46:20+00:00"
-            }
-        ],
+        "projetos": [],
         "dissertacoes": [],
         "catalogo": [],
         "livros": [],
         "contato": [],
         "links": []
+    },
+    "pageComponents": {
+        "home": [
+            {
+                "id": "home-hero-default",
+                "type": "home-hero",
+                "title": "",
+                "settings": {
+                    "subtitle": "Grupo de Estudo e Pesquisa",
+                    "title": "Pesquisa em Educação, Cultura e Literatura",
+                    "description": "O GEPHECL reúne pesquisadores, docentes e estudantes para produção de conhecimento histórico-educacional em diálogo com memória, cultura e práticas formativas.",
+                    "image": "uploads/home/capa.jpg",
+                    "primaryLabel": "Ver projetos",
+                    "primaryLink": "projetos-pesquisa.html",
+                    "secondaryLabel": "Ver galeria",
+                    "secondaryLink": "fotos.html"
+                },
+                "items": []
+            },
+            {
+                "id": "home-cards-default",
+                "type": "cards",
+                "title": "",
+                "settings": {},
+                "items": [
+                    {
+                        "id": "card-home-1",
+                        "title": "Produção Acadêmica",
+                        "description": "Projetos e pesquisas que articulam história da educação e formação docente."
+                    },
+                    {
+                        "id": "card-home-2",
+                        "title": "Catálogo de Fontes",
+                        "description": "Mapeamento de acervos e documentos para estudos históricos e educacionais."
+                    },
+                    {
+                        "id": "card-home-3",
+                        "title": "Livros e Fragmentos",
+                        "description": "Repertório de materiais históricos do período de 1840 a 1963."
+                    }
+                ]
+            },
+            {
+                "id": "home-details-default",
+                "type": "details",
+                "title": "Detalhes",
+                "settings": {
+                    "text": "O GEPHECL propõe aos seus integrantes a produção de estudos nos quais as categorias Educação, História, Cultura e Literatura atravessem a compreensão das relações sociais, identidades, memórias e subjetividades nos espaços formativos, incluindo a escola."
+                },
+                "items": []
+            }
+        ],
+        "membros": [
+            {
+                "id": "title-subtitle-membros-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Membros",
+                    "subtitle": "Grupo de Pesquisa"
+                },
+                "items": []
+            }
+        ],
+        "fotos": [
+            {
+                "id": "title-subtitle-fotos-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Galeria de Fotos",
+                    "subtitle": "Registros do grupo"
+                },
+                "items": []
+            }
+        ],
+        "projetos": [
+            {
+                "id": "title-subtitle-projetos-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Projetos de Pesquisa",
+                    "subtitle": "Produção acadêmica"
+                },
+                "items": []
+            }
+        ],
+        "dissertacoes": [
+            {
+                "id": "title-subtitle-dissertacoes-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Dissertações",
+                    "subtitle": "Produção acadêmica"
+                },
+                "items": []
+            }
+        ],
+        "catalogo": [
+            {
+                "id": "title-subtitle-catalogo-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Catálogo de Fontes",
+                    "subtitle": "Acervo e referências"
+                },
+                "items": []
+            }
+        ],
+        "livros": [
+            {
+                "id": "title-subtitle-livros-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Livros e Fragmentos (1840-1963)",
+                    "subtitle": "Acervo bibliográfico"
+                },
+                "items": []
+            }
+        ],
+        "contato": [
+            {
+                "id": "title-subtitle-contato-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Contato",
+                    "subtitle": "Fale com o grupo"
+                },
+                "items": []
+            }
+        ],
+        "links": [
+            {
+                "id": "title-subtitle-links-default",
+                "type": "title-subtitle",
+                "title": "Titulo e subtitulo",
+                "settings": {
+                    "title": "Links",
+                    "subtitle": "Referências externas"
+                },
+                "items": []
+            }
+        ]
     },
     "galleryManifest": "uploads/fotos/manifest.json"
 }

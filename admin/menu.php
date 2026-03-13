@@ -5,9 +5,89 @@ require __DIR__ . '/_common.php';
 requireLogin();
 
 $config = loadConfig();
+ensurePageComponents($config);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
+
+    if ($action === 'create-page-menu') {
+        $label = trim((string)($_POST['page_name'] ?? ''));
+        $rawLink = trim((string)($_POST['page_link'] ?? ''));
+        $parentId = trim((string)($_POST['parent_id'] ?? ''));
+        $visible = isset($_POST['menu_visible']);
+
+        if ($label === '') {
+            addFlash('errors', 'Informe o nome da nova pagina.');
+            header('Location: menu.php');
+            exit;
+        }
+        if ($rawLink === '') {
+            addFlash('errors', 'Informe o link da nova pagina.');
+            header('Location: menu.php');
+            exit;
+        }
+
+        $normalizedLink = ltrim($rawLink, '/');
+        if (!preg_match('/\.html$/i', $normalizedLink)) {
+            $normalizedLink .= '.html';
+        }
+        $filename = basename($normalizedLink);
+        $slugBase = preg_replace('/\.html$/i', '', $filename);
+        $slug = normalizeSlug((string)$slugBase);
+        if ($filename === 'index.html') {
+            $slug = 'home';
+        }
+        if ($slug === '') {
+            addFlash('errors', 'Nao foi possivel gerar um slug valido com esse link.');
+            header('Location: menu.php');
+            exit;
+        }
+        if (isset($config['pages'][$slug])) {
+            addFlash('errors', 'Ja existe uma pagina com esse link/slug.');
+            header('Location: menu.php');
+            exit;
+        }
+        if ($parentId !== '' && !menuItemExists($config['menu'], $parentId)) {
+            addFlash('errors', 'Item pai informado nao existe.');
+            header('Location: menu.php');
+            exit;
+        }
+
+        $filepath = ROOT_DIR . '/' . $filename;
+        if (file_exists($filepath)) {
+            addFlash('errors', 'Ja existe um arquivo com esse nome. Use outro link.');
+            header('Location: menu.php');
+            exit;
+        }
+
+        $config['pages'][$slug] = [
+            'title' => $label,
+            'subtitle' => '',
+            'description' => '',
+            'browserTitle' => $label . ' - GEPHECL | UFAL CEDU'
+        ];
+        $config['documents'][$slug] = [];
+        $config['pageComponents'][$slug] = getDefaultComponentsForPage($slug, $config);
+
+        $newId = 'menu-' . $slug . '-' . randomToken(6);
+        $position = nextPositionForParent($config['menu'], $parentId !== '' ? $parentId : null);
+        $config['menu'][] = [
+            'id' => $newId,
+            'label' => $label,
+            'page' => $slug,
+            'href' => $filename,
+            'parentId' => $parentId !== '' ? $parentId : null,
+            'visible' => $visible,
+            'position' => $position
+        ];
+
+        file_put_contents($filepath, buildStandardPageTemplate($slug, $label));
+        normalizeMenuPositions($config['menu']);
+        saveConfig($config);
+        addFlash('messages', "Nova pagina criada: {$filename}.");
+        header('Location: menu.php');
+        exit;
+    }
 
     if ($action === 'update-menu-item') {
         $itemId = trim((string)($_POST['item_id'] ?? ''));
@@ -77,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $config = loadConfig();
+$config['menu'] = $config['menu'] ?? [];
 $menuRows = buildMenuDisplayRows($config['menu'] ?? []);
 
 renderAdminStart('Menu', 'menu', pullFlash());
@@ -150,9 +231,73 @@ renderAdminStart('Menu', 'menu', pullFlash());
             </td>
           </tr>
         <?php endforeach; ?>
+        <tr id="new-page-row-template" style="display:none;">
+          <td><span class="admin-level-badge">Novo</span></td>
+          <td>
+            <form id="new-page-row-form" method="post" class="admin-table-inline-form">
+              <input type="hidden" name="action" value="create-page-menu">
+            </form>
+            <input type="text" name="page_name" form="new-page-row-form" class="admin-table-input" placeholder="Nome da nova pagina" required>
+          </td>
+          <td>
+            <input type="text" name="page_link" form="new-page-row-form" class="admin-table-input" placeholder="ex: eventos-2026.html" required>
+          </td>
+          <td>
+            <select name="parent_id" form="new-page-row-form" class="admin-table-select">
+              <option value="">(item principal)</option>
+              <?php foreach ($config['menu'] as $item): ?>
+                <option value="<?php echo h((string)($item['id'] ?? '')); ?>">
+                  <?php echo h((string)($item['label'] ?? '')); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </td>
+          <td>
+            <label class="admin-table-check">
+              <input type="checkbox" name="menu_visible" form="new-page-row-form" checked>
+              <span>Sim</span>
+            </label>
+          </td>
+          <td>
+            <div class="admin-actions admin-actions-tight">
+              <button type="submit" form="new-page-row-form" class="admin-icon-btn" title="Salvar nova pagina" aria-label="Salvar nova pagina">✓</button>
+              <button type="button" class="admin-icon-btn" id="cancel-new-page-row" title="Cancelar" aria-label="Cancelar">✕</button>
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
+  <div class="admin-actions" style="margin-top: 0.9rem;">
+    <button type="button" id="add-new-page-row" class="btn-admin secundario">Nova pagina</button>
+  </div>
 </section>
+<script>
+  (function () {
+    var addButton = document.getElementById('add-new-page-row');
+    var row = document.getElementById('new-page-row-template');
+    var cancelButton = document.getElementById('cancel-new-page-row');
+    if (!addButton || !row || !cancelButton) return;
+
+    function toggleNewRow(show) {
+      row.style.display = show ? '' : 'none';
+      addButton.disabled = !!show;
+      if (show) {
+        var input = row.querySelector('input[name="page_name"]');
+        if (input) input.focus();
+      } else {
+        var form = document.getElementById('new-page-row-form');
+        if (form) form.reset();
+      }
+    }
+
+    addButton.addEventListener('click', function () {
+      toggleNewRow(true);
+    });
+    cancelButton.addEventListener('click', function () {
+      toggleNewRow(false);
+    });
+  })();
+</script>
 <?php
 renderAdminEnd();

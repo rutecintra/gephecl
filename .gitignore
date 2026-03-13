@@ -2,3 +2,4 @@ uploads/home/**
 uploads/fotos/**
 uploads/docs/**
 data/site.runtime.json
+.DS_Store

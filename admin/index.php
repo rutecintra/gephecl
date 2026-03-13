@@ -52,7 +52,6 @@ if (!isLoggedIn()):
           <a href="../index.html" class="btn-admin secundario" style="text-decoration:none;">Voltar ao site</a>
         </div>
       </form>
-      <p class="link-desc" style="margin-top: 1rem;">Senha inicial: <code>admin123</code>. Troque o hash em <code>admin/_common.php</code> antes de publicar.</p>
     </div>
   </main>
 </body>
@@ -66,14 +65,10 @@ $config = loadConfig();
 ?>
 <section class="admin-section">
   <h2>Atalhos do painel</h2>
-  <p class="link-desc">Cada area agora tem sua propria pagina para facilitar a manutencao.</p>
+  <p class="link-desc">O painel foi reorganizado em duas areas principais.</p>
   <div class="admin-cta-grid">
-    <a class="admin-cta" href="pages.php"><strong>Paginas</strong><span>Editar titulos, subtitulos e descricoes.</span></a>
-    <a class="admin-cta" href="menu.php"><strong>Menu</strong><span>Organizar itens e subitens em tabela.</span></a>
-    <a class="admin-cta" href="new-page.php"><strong>Nova pagina</strong><span>Criar item de menu e pagina padrao.</span></a>
-    <a class="admin-cta" href="documents.php"><strong>Documentos</strong><span>Enviar e remover arquivos por pagina.</span></a>
-    <a class="admin-cta" href="home-image.php"><strong>Imagem da home</strong><span>Trocar a capa da pagina inicial.</span></a>
-    <a class="admin-cta" href="photos.php"><strong>Galeria de fotos</strong><span>Publicar novas imagens da galeria.</span></a>
+    <a class="admin-cta" href="menu.php"><strong>Menu</strong><span>Organizar itens e criar nova pagina com um clique.</span></a>
+    <a class="admin-cta" href="pages.php"><strong>Paginas</strong><span>Selecionar pagina e editar secoes, fotos, documentos e links.</span></a>
   </div>
 </section>
 <?php

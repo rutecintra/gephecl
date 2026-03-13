@@ -369,6 +369,114 @@ function randomToken(int $length): string
     }
 }
 
+function makeComponentId(string $type): string
+{
+    return normalizeSlug($type) . '-' . randomToken(10);
+}
+
+function defaultHomeComponents(array $config): array
+{
+    $homeImage = (string)($config['site']['homeImage'] ?? 'uploads/home/capa.jpg');
+    return [
+        [
+            'id' => makeComponentId('home-hero'),
+            'type' => 'home-hero',
+            'title' => '',
+            'settings' => [
+                'subtitle' => 'Grupo de Estudo e Pesquisa',
+                'title' => 'Pesquisa em Educacao, Cultura e Literatura',
+                'description' => 'O GEPHECL reune pesquisadores, docentes e estudantes para producao de conhecimento historico-educacional em dialogo com memoria, cultura e praticas formativas.',
+                'image' => $homeImage,
+                'primaryLabel' => 'Ver projetos',
+                'primaryLink' => 'projetos-pesquisa.html',
+                'secondaryLabel' => 'Ver galeria',
+                'secondaryLink' => 'fotos.html'
+            ],
+            'items' => []
+        ],
+        [
+            'id' => makeComponentId('cards'),
+            'type' => 'cards',
+            'title' => '',
+            'settings' => [],
+            'items' => [
+                [
+                    'id' => randomToken(8),
+                    'title' => 'Producao Academica',
+                    'description' => 'Projetos e pesquisas que articulam historia da educacao e formacao docente.'
+                ],
+                [
+                    'id' => randomToken(8),
+                    'title' => 'Catalogo de Fontes',
+                    'description' => 'Mapeamento de acervos e documentos para estudos historicos e educacionais.'
+                ],
+                [
+                    'id' => randomToken(8),
+                    'title' => 'Livros e Fragmentos',
+                    'description' => 'Repertorio de materiais historicos do periodo de 1840 a 1963.'
+                ]
+            ]
+        ],
+        [
+            'id' => makeComponentId('details'),
+            'type' => 'details',
+            'title' => '',
+            'settings' => [
+                'text' => 'O GEPHECL propoe aos seus integrantes a producao de estudos nos quais as categorias Educacao, Historia, Cultura e Literatura atravessem a compreensao das relacoes sociais, identidades, memorias e subjetividades nos espacos formativos, incluindo a escola.'
+            ],
+            'items' => []
+        ]
+    ];
+}
+
+function getDefaultComponentsForPage(string $slug, array $config): array
+{
+    if ($slug === 'home') {
+        return defaultHomeComponents($config);
+    }
+    $pageTitle = (string)($config['pages'][$slug]['title'] ?? ucfirst($slug));
+    $pageSubtitle = (string)($config['pages'][$slug]['subtitle'] ?? '');
+    return [
+        [
+            'id' => makeComponentId('title-subtitle'),
+            'type' => 'title-subtitle',
+            'title' => '',
+            'settings' => [
+                'title' => $pageTitle,
+                'subtitle' => $pageSubtitle
+            ],
+            'items' => []
+        ]
+    ];
+}
+
+function ensurePageComponents(array &$config): void
+{
+    if (!isset($config['pageComponents']) || !is_array($config['pageComponents'])) {
+        $config['pageComponents'] = [];
+    }
+    $pages = $config['pages'] ?? [];
+    foreach ($pages as $slug => $unusedPageConfig) {
+        if (!isset($config['pageComponents'][$slug]) || !is_array($config['pageComponents'][$slug])) {
+            $config['pageComponents'][$slug] = getDefaultComponentsForPage((string)$slug, $config);
+            continue;
+        }
+        if ($slug !== 'home') {
+            $hasTitleSubtitle = false;
+            foreach ($config['pageComponents'][$slug] as $component) {
+                if (($component['type'] ?? '') === 'title-subtitle') {
+                    $hasTitleSubtitle = true;
+                    break;
+                }
+            }
+            if (!$hasTitleSubtitle) {
+                $defaultComponent = getDefaultComponentsForPage((string)$slug, $config)[0];
+                array_unshift($config['pageComponents'][$slug], $defaultComponent);
+            }
+        }
+    }
+}
+
 function buildMenuDisplayRows(array $menu): array
 {
     $byParent = [];
@@ -422,13 +530,8 @@ function buildMenuDisplayRows(array $menu): array
 function renderAdminStart(string $title, string $activeKey, array $flash): void
 {
     $items = [
-        'dashboard' => ['label' => 'Visao geral', 'href' => 'index.php'],
-        'pages' => ['label' => 'Paginas', 'href' => 'pages.php'],
         'menu' => ['label' => 'Menu', 'href' => 'menu.php'],
-        'new-page' => ['label' => 'Nova pagina', 'href' => 'new-page.php'],
-        'documents' => ['label' => 'Documentos', 'href' => 'documents.php'],
-        'home-image' => ['label' => 'Imagem da home', 'href' => 'home-image.php'],
-        'photos' => ['label' => 'Galeria de fotos', 'href' => 'photos.php']
+        'pages' => ['label' => 'Paginas', 'href' => 'pages.php']
     ];
     ?>
 <!DOCTYPE html>
