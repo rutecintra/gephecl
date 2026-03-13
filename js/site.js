@@ -15,6 +15,7 @@ var FALLBACK_CONFIG = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
+  resetTransientUiState();
   loadSiteConfig().then(function (config) {
     setupSharedComponents(config);
     applyPageContent(config);
@@ -29,6 +30,27 @@ document.addEventListener('DOMContentLoaded', function () {
     setupGalleryFromManifest(config);
   });
 });
+
+window.addEventListener('pageshow', function () {
+  resetTransientUiState();
+});
+
+function resetTransientUiState() {
+  if (document.body) {
+    document.body.classList.remove('nav-sidebar-open');
+  }
+  var navWrap = document.querySelector('.nav-wrap');
+  if (!navWrap) return;
+  navWrap.classList.remove('nav-open');
+  navWrap.querySelectorAll('.nav-list > li.dropdown-open').forEach(function (item) {
+    item.classList.remove('dropdown-open');
+  });
+  var toggle = navWrap.querySelector('.nav-toggle');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Abrir menu de navegacao');
+  }
+}
 
 function loadSiteConfig() {
   return fetchJsonNoStore('data/site.runtime.json')
@@ -296,6 +318,11 @@ function renderDynamicComponents(config, pageKey, pageComponents) {
   var dynamicComponents = pageComponents.filter(function (component) {
     return component && reservedTypes.indexOf(component.type) < 0;
   });
+  if (pageKey === 'fotos' && document.querySelector('[data-auto-gallery-grid]')) {
+    dynamicComponents = dynamicComponents.filter(function (component) {
+      return component.type !== 'gallery';
+    });
+  }
   if (!dynamicComponents.length) return;
 
   var dynamicRoot = contentRoot.querySelector('[data-dynamic-root]');
@@ -602,6 +629,7 @@ function setupMobileNavToggle() {
   var navWrap = document.querySelector('.nav-wrap');
   var navList = document.querySelector('.nav-list');
   if (!navWrap || !navList) return;
+  resetTransientUiState();
 
   if (navWrap.querySelector('.nav-toggle')) return;
 
@@ -873,6 +901,9 @@ function setupGalleryFromManifest(config) {
   if (!autoGallery) return;
 
   var status = document.querySelector('[data-galeria-status]');
+  var defaultView = getDefaultGalleryView(config);
+  setupGalleryViewSwitch(false, defaultView);
+  var fallbackItems = getGalleryFallbackItemsFromConfig(config);
   var manifestPath = FALLBACK_CONFIG.galleryManifest;
   if (config && config.galleryManifest) {
     manifestPath = config.galleryManifest;
@@ -885,8 +916,12 @@ function setupGalleryFromManifest(config) {
     })
     .then(function (items) {
       var normalizedItems = normalizeGalleryItems(items);
+      if (!normalizedItems.length && fallbackItems.length) {
+        normalizedItems = fallbackItems;
+      }
       if (!normalizedItems.length) {
-        if (status) status.remove();
+        setupGalleryViewSwitch(false, defaultView);
+        if (status) status.textContent = 'Nenhuma foto disponivel no momento.';
         return;
       }
 
@@ -901,7 +936,7 @@ function setupGalleryFromManifest(config) {
         var titleEl = document.createElement('strong');
         var captionEl = document.createElement('span');
 
-        img.src = 'uploads/fotos/' + encodeURIComponent(item.file);
+        img.src = resolveGalleryImageSrc(item.file);
         img.alt = item.title || ('Foto ' + (idx + 1));
 
         titleEl.className = 'gallery-card-title';
@@ -920,12 +955,44 @@ function setupGalleryFromManifest(config) {
       });
 
       setupGallerySlider(normalizedItems);
-      setupGalleryViewSwitch(normalizedItems.length > 0, getDefaultGalleryView(config));
+      setupGalleryViewSwitch(true, defaultView);
       setupRevealOnScroll();
     })
     .catch(function () {
-      if (status) status.remove();
+      if (fallbackItems.length) {
+        autoGallery.innerHTML = '';
+        if (status) status.style.display = 'none';
+        fallbackItems.forEach(function (item, idx) {
+          var figure = document.createElement('figure');
+          figure.className = 'reveal-on-scroll';
+          figure.innerHTML = '<img src="' + escapeHtml(item.file) + '" alt="' + escapeHtml(item.title || ('Foto ' + (idx + 1))) + '"><figcaption><strong class="gallery-card-title">' + escapeHtml(item.title || ('Foto ' + (idx + 1))) + '</strong><span class="gallery-card-caption">' + escapeHtml(item.caption || '') + '</span></figcaption>';
+          autoGallery.appendChild(figure);
+        });
+        setupGallerySlider(fallbackItems);
+        setupGalleryViewSwitch(true, defaultView);
+        setupRevealOnScroll();
+      } else {
+        setupGalleryViewSwitch(false, defaultView);
+        if (status) status.textContent = 'Nao foi possivel carregar as fotos.';
+      }
     });
+}
+
+function getGalleryFallbackItemsFromConfig(config) {
+  if (!config || !config.pageComponents || !Array.isArray(config.pageComponents.fotos)) {
+    return [];
+  }
+  var galleryComponent = config.pageComponents.fotos.find(function (component) {
+    return component && component.type === 'gallery' && Array.isArray(component.items) && component.items.length > 0;
+  });
+  if (!galleryComponent) return [];
+  return normalizeGalleryItems(galleryComponent.items.map(function (item, idx) {
+    return {
+      file: item.file || '',
+      title: item.title || ('Foto ' + (idx + 1)),
+      caption: item.subtitle || item.caption || ''
+    };
+  }));
 }
 
 function normalizeGalleryItems(items) {
@@ -981,25 +1048,35 @@ function setupGalleryViewSwitch(hasItems, defaultView) {
   switchRoot.style.display = '';
 
   function applyView(view) {
+    var normalizedView = view === 'slider' ? 'slider' : 'grid';
     var buttons = switchRoot.querySelectorAll('[data-gallery-view]');
     buttons.forEach(function (btn) {
-      btn.classList.toggle('is-active', btn.getAttribute('data-gallery-view') === view);
+      var isActive = btn.getAttribute('data-gallery-view') === normalizedView;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
-    if (view === 'slider') {
+    if (normalizedView === 'slider') {
       slider.hidden = false;
+      slider.style.display = 'grid';
+      grid.hidden = true;
       grid.style.display = 'none';
     } else {
       slider.hidden = true;
+      slider.style.display = 'none';
+      grid.hidden = false;
       grid.style.display = '';
     }
   }
 
   if (switchRoot.dataset.bound !== '1') {
-    switchRoot.querySelectorAll('[data-gallery-view]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var view = button.getAttribute('data-gallery-view') || 'grid';
-        applyView(view);
-      });
+    var buttons = switchRoot.querySelectorAll('[data-gallery-view]');
+    buttons.forEach(function (button) {
+      function handleActivate(event) {
+        event.preventDefault();
+        applyView(button.getAttribute('data-gallery-view') || 'grid');
+      }
+      button.addEventListener('click', handleActivate);
+      button.addEventListener('touchend', handleActivate, { passive: false });
     });
     switchRoot.dataset.bound = '1';
   }
@@ -1021,7 +1098,7 @@ function setupGallerySlider(items) {
   var index = 0;
   function renderCurrent() {
     var item = items[index];
-    imageEl.src = 'uploads/fotos/' + encodeURIComponent(item.file);
+    imageEl.src = resolveGalleryImageSrc(item.file);
     imageEl.alt = item.title || 'Foto da galeria';
     titleEl.textContent = item.title || 'Foto';
     captionEl.textContent = item.caption || '';
@@ -1041,6 +1118,23 @@ function setupGallerySlider(items) {
   }
 
   renderCurrent();
+}
+
+function resolveGalleryImageSrc(file) {
+  var raw = String(file || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.indexOf('uploads/fotos/') === 0) return encodePathPreservingSlashes(raw);
+  return 'uploads/fotos/' + encodeURIComponent(raw);
+}
+
+function encodePathPreservingSlashes(path) {
+  return String(path)
+    .split('/')
+    .map(function (segment) {
+      return encodeURIComponent(segment);
+    })
+    .join('/');
 }
 
 function escapeHtml(value) {
