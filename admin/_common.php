@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 session_start();
 
-const ADMIN_PASSWORD_HASH = '$2y$10$HxHTUOYiDrl0KYs9dfPQu.qJ8coDSDmz4QFaLZ1h9pNvVcey5fbFe'; // senha padrao: admin123
+const ADMIN_PASSWORD_HASH = '$2y$10$IatKWdOX0C91JVCVr.OeaOo8poQt8Wk292x6Fs3lW9jZuaFsOC4rm'; // senha padrao: gephecl2022
 const ADMIN_SESSION_TTL = 7200; // 2h
 const MAX_FILE_SIZE = 12582912; // 12MB
 const ALLOWED_IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
