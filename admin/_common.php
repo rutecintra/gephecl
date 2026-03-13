@@ -10,7 +10,8 @@ const ALLOWED_IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const ALLOWED_DOC_EXT = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'];
 
 define('ROOT_DIR', dirname(__DIR__));
-define('CONFIG_FILE', ROOT_DIR . '/data/site.json');
+define('CONFIG_BASE_FILE', ROOT_DIR . '/data/site.json');
+define('CONFIG_RUNTIME_FILE', ROOT_DIR . '/data/site.runtime.json');
 define('PHOTOS_DIR', ROOT_DIR . '/uploads/fotos');
 define('DOCS_DIR', ROOT_DIR . '/uploads/docs');
 define('HOME_DIR', ROOT_DIR . '/uploads/home');
@@ -23,7 +24,7 @@ ensureDir(HOME_DIR);
 if (!file_exists(MANIFEST_FILE)) {
     file_put_contents(MANIFEST_FILE, "[]\n");
 }
-if (!file_exists(CONFIG_FILE)) {
+if (!file_exists(CONFIG_BASE_FILE)) {
     failHard('Arquivo de configuracao nao encontrado em data/site.json.');
 }
 
@@ -148,12 +149,18 @@ function saveJsonFile(string $path, array $data): void
 
 function loadConfig(): array
 {
-    return loadJsonFile(CONFIG_FILE);
+    if (file_exists(CONFIG_RUNTIME_FILE)) {
+        $runtime = loadJsonFile(CONFIG_RUNTIME_FILE);
+        if (is_array($runtime) && !empty($runtime)) {
+            return $runtime;
+        }
+    }
+    return loadJsonFile(CONFIG_BASE_FILE);
 }
 
 function saveConfig(array $config): void
 {
-    saveJsonFile(CONFIG_FILE, $config);
+    saveJsonFile(CONFIG_RUNTIME_FILE, $config);
 }
 
 function normalizeSlug(string $value): string

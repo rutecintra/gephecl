@@ -30,10 +30,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function loadSiteConfig() {
-  return fetch('data/site.json?ts=' + Date.now(), { cache: 'no-store' })
-    .then(function (response) {
-      if (!response.ok) throw new Error('Nao foi possivel carregar configuracoes');
-      return response.json();
+  return fetchJsonNoStore('data/site.runtime.json')
+    .then(function (runtimeConfig) {
+      if (runtimeConfig && typeof runtimeConfig === 'object') {
+        return runtimeConfig;
+      }
+      return fetchJsonNoStore('data/site.json');
     })
     .then(function (config) {
       if (!config || typeof config !== 'object') return FALLBACK_CONFIG;
@@ -41,6 +43,17 @@ function loadSiteConfig() {
     })
     .catch(function () {
       return FALLBACK_CONFIG;
+    });
+}
+
+function fetchJsonNoStore(path) {
+  return fetch(path + '?ts=' + Date.now(), { cache: 'no-store' })
+    .then(function (response) {
+      if (!response.ok) return null;
+      return response.json();
+    })
+    .catch(function () {
+      return null;
     });
 }
 
@@ -242,7 +255,7 @@ function renderPageDocuments(config, pageKey) {
     contentRoot.appendChild(docsRoot);
   }
 
-  var html = '<h3>Documentos</h3><ul class="page-documents-list">';
+  var html = '<ul class="page-documents-list">';
   docs.forEach(function (doc) {
     if (!doc || !doc.file) return;
     var title = doc.title || doc.file;
