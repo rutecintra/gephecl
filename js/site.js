@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupCounterAnimations();
     setupTiltCards();
     setupGalleryFromManifest(config);
+    setupGalleryLightbox();
   });
 });
 
@@ -1118,6 +1119,65 @@ function setupGallerySlider(items) {
   }
 
   renderCurrent();
+}
+
+function setupGalleryLightbox() {
+  if (!document.body || document.body.dataset.galleryLightboxBound === '1') return;
+
+  var modal = document.createElement('div');
+  modal.className = 'gallery-lightbox';
+  modal.hidden = true;
+  modal.innerHTML = '<div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Visualizacao da imagem"><button type="button" class="gallery-lightbox-close" aria-label="Fechar imagem">×</button><img src="" alt="" class="gallery-lightbox-image"><p class="gallery-lightbox-caption"></p></div>';
+  document.body.appendChild(modal);
+
+  var imageEl = modal.querySelector('.gallery-lightbox-image');
+  var captionEl = modal.querySelector('.gallery-lightbox-caption');
+  var closeBtn = modal.querySelector('.gallery-lightbox-close');
+
+  function closeLightbox() {
+    modal.hidden = true;
+    document.body.classList.remove('gallery-lightbox-open');
+    imageEl.src = '';
+  }
+
+  function openLightbox(src, alt, caption) {
+    imageEl.src = src;
+    imageEl.alt = alt || 'Imagem da galeria';
+    captionEl.textContent = caption || '';
+    captionEl.style.display = caption ? '' : 'none';
+    modal.hidden = false;
+    document.body.classList.add('gallery-lightbox-open');
+  }
+
+  closeBtn.addEventListener('click', closeLightbox);
+  modal.addEventListener('click', function (event) {
+    if (event.target === modal) closeLightbox();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modal.hidden) closeLightbox();
+  });
+
+  document.addEventListener('click', function (event) {
+    var img = event.target.closest('.galeria figure img, .galeria-slider-figure img');
+    if (!img) return;
+
+    var source = img.currentSrc || img.src;
+    if (!source) return;
+
+    var figure = img.closest('figure');
+    var title = figure ? figure.querySelector('.gallery-card-title, [data-gallery-slider-title], strong') : null;
+    var subtitle = figure ? figure.querySelector('.gallery-card-caption, [data-gallery-slider-caption], span') : null;
+    var caption = '';
+    if (title && title.textContent) caption = title.textContent.trim();
+    if (subtitle && subtitle.textContent) {
+      caption = caption ? caption + ' - ' + subtitle.textContent.trim() : subtitle.textContent.trim();
+    }
+
+    event.preventDefault();
+    openLightbox(source, img.alt || '', caption);
+  });
+
+  document.body.dataset.galleryLightboxBound = '1';
 }
 
 function resolveGalleryImageSrc(file) {

@@ -867,6 +867,60 @@ body.nav-sidebar-open::before {
   color: var(--text-soft);
 }
 
+.gallery-lightbox[hidden] {
+  display: none;
+}
+
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 320;
+  background: rgba(8, 25, 44, 0.78);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.gallery-lightbox-dialog {
+  width: min(96vw, 1100px);
+  max-height: 94vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.65rem;
+}
+
+.gallery-lightbox-close {
+  justify-self: end;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: rgba(12, 36, 58, 0.92);
+  color: #fff;
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gallery-lightbox-image {
+  max-width: 100%;
+  max-height: calc(94vh - 110px);
+  margin: 0 auto;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.gallery-lightbox-caption {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  text-align: center;
+  font-weight: 600;
+}
+
+body.gallery-lightbox-open {
+  overflow: hidden;
+}
+
 .contato p {
   margin-bottom: 0.82rem;
 }
