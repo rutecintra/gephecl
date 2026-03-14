@@ -440,13 +440,31 @@ function applyPageContent(config) {
     var titleSubtitleSettings = titleSubtitleComponent && titleSubtitleComponent.settings ? titleSubtitleComponent.settings : {};
     var resolvedTitle = titleSubtitleSettings.title || pageConfig.title || '';
     var resolvedSubtitle = titleSubtitleSettings.subtitle || '';
+    var activeFolderSlug = pageKey === 'fotos' ? getActiveFolderSlug() : '';
+    if (activeFolderSlug) {
+      var folderComponent = pageComponents.find(function (component) {
+        if (!component || component.type !== 'gallery-folder') return false;
+        var folder = normalizeFolderSlug(component.settings && component.settings.folder ? String(component.settings.folder) : '');
+        return folder === activeFolderSlug;
+      });
+      if (folderComponent) {
+        var folderSettings = folderComponent.settings || {};
+        var folderName = (folderSettings.folderName || '').trim();
+        resolvedTitle = folderName || activeFolderSlug;
+        resolvedSubtitle = 'Pasta de fotos';
+      }
+    }
 
     var titleEl = document.querySelector('.page-title');
     if (titleEl && resolvedTitle) titleEl.textContent = resolvedTitle;
 
     var breadcrumb = document.querySelector('.breadcrumb');
     if (breadcrumb && resolvedTitle) {
-      breadcrumb.innerHTML = '<a href="index.html">Home</a> / ' + escapeHtml(resolvedTitle);
+      if (pageKey === 'fotos' && activeFolderSlug) {
+        breadcrumb.innerHTML = '<a href="index.html">Home</a> / <a href="' + escapeHtml(window.location.pathname || 'fotos.html') + '">Galeria de Fotos</a> / ' + escapeHtml(resolvedTitle);
+      } else {
+        breadcrumb.innerHTML = '<a href="index.html">Home</a> / ' + escapeHtml(resolvedTitle);
+      }
     }
 
     var pageTop = document.querySelector('.page-top');
@@ -482,16 +500,52 @@ function filterComponentsByType(components, type) {
   });
 }
 
+function normalizeFolderSlug(value) {
+  if (typeof value !== 'string') return '';
+  var raw = value.replace(/\\/g, '/').trim();
+  if (!raw) return '';
+  var segments = raw.split('/');
+  var safe = [];
+  segments.forEach(function (segment) {
+    var part = String(segment || '').trim();
+    if (!part || part === '.' || part === '..') return;
+    part = part.replace(/[^a-zA-Z0-9_-]+/g, '-');
+    part = part.replace(/^[-_]+|[-_]+$/g, '');
+    if (part) safe.push(part);
+  });
+  return safe.join('/');
+}
+
+function getQueryParam(name) {
+  try {
+    var params = new URLSearchParams(window.location.search || '');
+    return params.get(name) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function getActiveFolderSlug() {
+  return normalizeFolderSlug(getQueryParam('pasta'));
+}
+
 function renderDynamicComponents(config, pageKey, pageComponents) {
   if (!Array.isArray(pageComponents) || !pageComponents.length) return;
   var contentRoot = document.querySelector('.conteudo');
   if (!contentRoot) return;
+  var activeFolderSlug = pageKey === 'fotos' ? getActiveFolderSlug() : '';
 
   var reservedTypes = pageKey === 'home' ? ['home-hero', 'cards', 'details'] : ['title-subtitle'];
   var dynamicComponents = pageComponents.filter(function (component) {
     return component && reservedTypes.indexOf(component.type) < 0;
   });
-  if (pageKey === 'fotos' && document.querySelector('[data-auto-gallery-grid]')) {
+  if (pageKey === 'fotos' && activeFolderSlug) {
+    dynamicComponents = dynamicComponents.filter(function (component) {
+      if (!component || component.type !== 'gallery-folder') return false;
+      var folder = normalizeFolderSlug(component.settings && component.settings.folder ? String(component.settings.folder) : '');
+      return folder === activeFolderSlug;
+    });
+  } else if (pageKey === 'fotos' && document.querySelector('[data-auto-gallery-grid]')) {
     dynamicComponents = dynamicComponents.filter(function (component) {
       return component.type !== 'gallery';
     });
@@ -505,6 +559,8 @@ function renderDynamicComponents(config, pageKey, pageComponents) {
     contentRoot.appendChild(dynamicRoot);
   }
   dynamicRoot.innerHTML = '';
+  var folderListSection = null;
+  var folderListGrid = null;
 
   dynamicComponents.forEach(function (component, index) {
     var type = component.type || '';
@@ -530,6 +586,19 @@ function renderDynamicComponents(config, pageKey, pageComponents) {
     }
     if (type === 'photo-slider') {
       dynamicRoot.appendChild(buildPhotoSliderNode(component, index));
+      return;
+    }
+    if (type === 'gallery-folder' && !activeFolderSlug) {
+      if (!folderListSection) {
+        folderListSection = document.createElement('section');
+        folderListSection.className = 'dynamic-section dynamic-folder-gallery-list-section reveal-on-scroll';
+        folderListSection.setAttribute('data-dynamic-index', String(index));
+        folderListGrid = document.createElement('div');
+        folderListGrid.className = 'dynamic-folder-gallery-list';
+        folderListSection.appendChild(folderListGrid);
+        dynamicRoot.appendChild(folderListSection);
+      }
+      folderListGrid.appendChild(buildGalleryFolderNode(component, index));
       return;
     }
     if (type === 'gallery' || type === 'gallery-folder') {
@@ -690,94 +759,81 @@ function buildGalleryNode(component, index) {
 }
 
 function buildGalleryFolderNode(component, index) {
-  var node = document.createElement('section');
-  node.className = 'dynamic-section dynamic-folder-gallery reveal-on-scroll';
-  node.setAttribute('data-dynamic-index', String(index));
-
   var settings = component && component.settings ? component.settings : {};
   var folderName = (settings.folderName || '').trim();
-  var folderSlug = (settings.folder || '').trim();
+  var folderSlug = normalizeFolderSlug((settings.folder || '').trim());
   var folderLabel = folderName || folderSlug || 'Pasta de imagens';
   var items = Array.isArray(component.items) ? component.items : [];
+  var activeFolderSlug = getActiveFolderSlug();
 
-  var trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.className = 'folder-gallery-trigger';
-  trigger.setAttribute('aria-label', 'Abrir galeria da pasta ' + folderLabel);
-  trigger.innerHTML =
-    '<span class="folder-gallery-icon" aria-hidden="true"></span>' +
-    '<span class="folder-gallery-text"><strong>' + escapeHtml(folderLabel) + '</strong><small>' + (items.length ? (items.length + ' foto(s)') : 'Sem fotos ainda') + '</small></span>' +
-    '<span class="folder-gallery-arrow" aria-hidden="true">&rarr;</span>';
-  trigger.addEventListener('click', function () {
-    openFolderGalleryModal(folderLabel, items);
-  });
+  if (activeFolderSlug && folderSlug === activeFolderSlug) {
+    return buildGalleryFolderPageNode(folderLabel, items, index);
+  }
 
-  node.appendChild(trigger);
+  var node = document.createElement('article');
+  node.className = 'dynamic-folder-gallery-item';
+  node.setAttribute('data-dynamic-index', String(index));
+  var href = buildFolderPageHref(folderSlug);
+  var firstImage = '';
+  if (items.length && items[0] && items[0].file) {
+    firstImage = String(items[0].file);
+  }
+  var iconClass = firstImage ? 'folder-gallery-icon has-thumb' : 'folder-gallery-icon';
+  var thumbHtml = firstImage
+    ? '<span class="folder-gallery-thumb-wrap"><img class="folder-gallery-thumb" src="' + escapeHtml(firstImage) + '" alt=""></span>'
+    : '';
+  var iconInner =
+    '<span class="folder-layer folder-layer-back" aria-hidden="true"></span>' +
+    thumbHtml +
+    '<span class="folder-layer folder-layer-front" aria-hidden="true"></span>';
+  node.innerHTML =
+    '<a class="folder-gallery-link" href="' + escapeHtml(href) + '" aria-label="Abrir pasta ' + escapeHtml(folderLabel) + '">' +
+      '<span class="' + iconClass + '" aria-hidden="true">' + iconInner + '</span>' +
+      '<span class="folder-gallery-name">' + escapeHtml(folderLabel) + '</span>' +
+      '<span class="folder-gallery-arrow" aria-hidden="true">&rarr;</span>' +
+    '</a>';
   return node;
 }
 
-function openFolderGalleryModal(folderLabel, items) {
-  var existing = document.querySelector('[data-folder-gallery-modal]');
-  if (existing) existing.remove();
+function buildGalleryFolderPageNode(folderLabel, items, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section dynamic-folder-gallery-page reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
 
-  var modal = document.createElement('div');
-  modal.className = 'folder-gallery-modal';
-  modal.setAttribute('data-folder-gallery-modal', '1');
-
-  var dialog = document.createElement('div');
-  dialog.className = 'folder-gallery-modal-dialog';
-  dialog.setAttribute('role', 'dialog');
-  dialog.setAttribute('aria-modal', 'true');
-  dialog.setAttribute('aria-label', 'Galeria da pasta ' + folderLabel);
-
-  var head = document.createElement('div');
-  head.className = 'folder-gallery-modal-head';
-
-  var title = document.createElement('strong');
+  var title = document.createElement('h3');
   title.textContent = folderLabel;
-  var close = document.createElement('button');
-  close.type = 'button';
-  close.className = 'folder-gallery-modal-close';
-  close.setAttribute('aria-label', 'Fechar galeria da pasta');
-  close.textContent = 'x';
-  close.addEventListener('click', function () {
-    modal.remove();
-    document.body.classList.remove('folder-gallery-open');
-  });
-  head.appendChild(title);
-  head.appendChild(close);
+  node.appendChild(title);
 
-  var body = document.createElement('div');
-  body.className = 'folder-gallery-modal-body';
-  if (Array.isArray(items) && items.length) {
-    var grid = document.createElement('div');
-    grid.className = 'galeria';
-    items.forEach(function (item, itemIdx) {
-      if (!item || !item.file) return;
-      var figure = document.createElement('figure');
-      figure.innerHTML = '<img src="' + escapeHtml(item.file) + '" alt="' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '"><figcaption><strong class="gallery-card-title">' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '</strong><span class="gallery-card-caption">' + escapeHtml(item.subtitle || '') + '</span></figcaption>';
-      grid.appendChild(figure);
-    });
-    body.appendChild(grid);
-  } else {
+  var backLink = document.createElement('a');
+  backLink.className = 'folder-gallery-back';
+  backLink.href = window.location.pathname || 'fotos.html';
+  backLink.textContent = '\u2190 Voltar para pastas';
+  node.appendChild(backLink);
+
+  if (!Array.isArray(items) || !items.length) {
     var empty = document.createElement('p');
     empty.className = 'link-desc';
     empty.textContent = 'Essa pasta ainda nao possui fotos.';
-    body.appendChild(empty);
+    node.appendChild(empty);
+    return node;
   }
 
-  dialog.appendChild(head);
-  dialog.appendChild(body);
-  modal.appendChild(dialog);
-  modal.addEventListener('click', function (event) {
-    if (event.target === modal) {
-      modal.remove();
-      document.body.classList.remove('folder-gallery-open');
-    }
+  var grid = document.createElement('div');
+  grid.className = 'galeria';
+  items.forEach(function (item, itemIdx) {
+    if (!item || !item.file) return;
+    var figure = document.createElement('figure');
+    figure.innerHTML = '<img src="' + escapeHtml(item.file) + '" alt="' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '"><figcaption><strong class="gallery-card-title">' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '</strong><span class="gallery-card-caption">' + escapeHtml(item.subtitle || '') + '</span></figcaption>';
+    grid.appendChild(figure);
   });
+  node.appendChild(grid);
+  return node;
+}
 
-  document.body.appendChild(modal);
-  document.body.classList.add('folder-gallery-open');
+function buildFolderPageHref(folderSlug) {
+  var basePath = (window.location && window.location.pathname) ? window.location.pathname : 'fotos.html';
+  if (!folderSlug) return basePath;
+  return basePath + '?pasta=' + encodeURIComponent(folderSlug);
 }
 
 function setupManualSlider(sliderRoot, items) {
@@ -1176,10 +1232,16 @@ function setupTiltCards() {
 function setupGalleryFromManifest(config) {
   var autoGallery = document.querySelector('[data-auto-gallery-grid]') || document.querySelector('.galeria[data-auto-gallery]');
   if (!autoGallery) return;
+  var activeFolderSlug = getActiveFolderSlug();
 
   var status = document.querySelector('[data-galeria-status]');
   var defaultView = getDefaultGalleryView(config);
   setupGalleryViewSwitch(false, defaultView);
+  if (activeFolderSlug) {
+    autoGallery.innerHTML = '';
+    if (status) status.style.display = 'none';
+    return;
+  }
   var fallbackItems = getGalleryFallbackItemsFromConfig(config);
   var manifestPath = FALLBACK_CONFIG.galleryManifest;
   if (config && config.galleryManifest) {
@@ -1257,6 +1319,9 @@ function setupGalleryFromManifest(config) {
 
 function getGalleryFallbackItemsFromConfig(config) {
   if (!config || !config.pageComponents || !Array.isArray(config.pageComponents.fotos)) {
+    return [];
+  }
+  if (getActiveFolderSlug()) {
     return [];
   }
   var galleryComponent = config.pageComponents.fotos.find(function (component) {
