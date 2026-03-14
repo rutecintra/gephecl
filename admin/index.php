@@ -69,6 +69,7 @@ $config = loadConfig();
   <div class="admin-cta-grid">
     <a class="admin-cta" href="menu.php"><strong>Menu</strong><span>Organizar itens e criar nova pagina com um clique.</span></a>
     <a class="admin-cta" href="pages.php"><strong>Paginas</strong><span>Selecionar pagina e editar secoes, fotos, documentos e links.</span></a>
+    <a class="admin-cta" href="personalizar.php"><strong>Personalizar</strong><span>Alterar cor principal e cor de fundo da plataforma.</span></a>
   </div>
 </section>
 <?php

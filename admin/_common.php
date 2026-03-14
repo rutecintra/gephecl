@@ -12,10 +12,23 @@ const ALLOWED_DOC_EXT = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'tx
 define('ROOT_DIR', dirname(__DIR__));
 define('CONFIG_BASE_FILE', ROOT_DIR . '/data/site.json');
 define('CONFIG_RUNTIME_FILE', ROOT_DIR . '/data/site.runtime.json');
+define('THEME_TOKENS_FILE', ROOT_DIR . '/data/theme.tokens.json');
 define('PHOTOS_DIR', ROOT_DIR . '/uploads/fotos');
 define('DOCS_DIR', ROOT_DIR . '/uploads/docs');
 define('HOME_DIR', ROOT_DIR . '/uploads/home');
 define('MANIFEST_FILE', PHOTOS_DIR . '/manifest.json');
+define('DEFAULT_THEME_PRIMARY_COLOR', '#0F5EA6');
+define('DEFAULT_THEME_BACKGROUND_COLOR', '#F6F2E9');
+define('DEFAULT_THEME_NAV_FONT_SIZE_PX', 15.36);
+define('DEFAULT_THEME_BUTTON_FONT_SIZE_PX', 14.4);
+define('DEFAULT_THEME_HERO_SUBTITLE_FONT_SIZE_PX', 12.48);
+define('DEFAULT_THEME_HERO_TITLE_FONT_SIZE_PX', 56.0);
+define('DEFAULT_THEME_HERO_DESCRIPTION_FONT_SIZE_PX', 16.0);
+define('DEFAULT_THEME_PAGE_TITLE_FONT_SIZE_PX', 36.8);
+define('DEFAULT_THEME_PAGE_SUBTITLE_FONT_SIZE_PX', 13.12);
+define('DEFAULT_THEME_PAGE_DESCRIPTION_FONT_SIZE_PX', 16.0);
+define('DEFAULT_THEME_SECTION_TITLE_FONT_SIZE_PX', 17.28);
+define('DEFAULT_THEME_SECTION_DESCRIPTION_FONT_SIZE_PX', 16.0);
 
 ensureDir(PHOTOS_DIR);
 ensureDir(DOCS_DIR);
@@ -27,6 +40,7 @@ if (!file_exists(MANIFEST_FILE)) {
 if (!file_exists(CONFIG_BASE_FILE)) {
     failHard('Arquivo de configuracao nao encontrado em data/site.json.');
 }
+ensureThemeTokensFile();
 
 handleLogoutAndSession();
 
@@ -145,6 +159,120 @@ function saveJsonFile(string $path, array $data): void
         $path,
         json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL
     );
+}
+
+function normalizeHexColorToken(string $value): ?string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    if ($value[0] !== '#') {
+        $value = '#' . $value;
+    }
+    if (!preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
+        return null;
+    }
+    return strtoupper($value);
+}
+
+function normalizeFontSizeToken($value, float $min = 10.0, float $max = 96.0): ?float
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+    $size = (float)$value;
+    if (!is_finite($size)) {
+        return null;
+    }
+    if ($size < $min || $size > $max) {
+        return null;
+    }
+    return round($size, 2);
+}
+
+function loadThemeTokens(): array
+{
+    $raw = loadJsonFile(THEME_TOKENS_FILE);
+    $primary = normalizeHexColorToken((string)($raw['primaryColor'] ?? ''));
+    $background = normalizeHexColorToken((string)($raw['backgroundColor'] ?? ''));
+    $legacyTitleSize = normalizeFontSizeToken($raw['titleFontSize'] ?? null);
+    $legacySubtitleSize = normalizeFontSizeToken($raw['subtitleFontSize'] ?? null);
+    $legacyDescriptionSize = normalizeFontSizeToken($raw['descriptionFontSize'] ?? null);
+
+    $navFontSize = normalizeFontSizeToken($raw['navFontSize'] ?? null);
+    $buttonFontSize = normalizeFontSizeToken($raw['buttonFontSize'] ?? null);
+    $heroSubtitleFontSize = normalizeFontSizeToken($raw['heroSubtitleFontSize'] ?? null);
+    $heroTitleFontSize = normalizeFontSizeToken($raw['heroTitleFontSize'] ?? null);
+    $heroDescriptionFontSize = normalizeFontSizeToken($raw['heroDescriptionFontSize'] ?? null);
+    $pageTitleFontSize = normalizeFontSizeToken($raw['pageTitleFontSize'] ?? null);
+    $pageSubtitleFontSize = normalizeFontSizeToken($raw['pageSubtitleFontSize'] ?? null);
+    $pageDescriptionFontSize = normalizeFontSizeToken($raw['pageDescriptionFontSize'] ?? null);
+    $sectionTitleFontSize = normalizeFontSizeToken($raw['sectionTitleFontSize'] ?? null);
+    $sectionDescriptionFontSize = normalizeFontSizeToken($raw['sectionDescriptionFontSize'] ?? null);
+
+    return [
+        'primaryColor' => $primary ?? DEFAULT_THEME_PRIMARY_COLOR,
+        'backgroundColor' => $background ?? DEFAULT_THEME_BACKGROUND_COLOR,
+        'navFontSize' => $navFontSize ?? DEFAULT_THEME_NAV_FONT_SIZE_PX,
+        'buttonFontSize' => $buttonFontSize ?? DEFAULT_THEME_BUTTON_FONT_SIZE_PX,
+        'heroSubtitleFontSize' => $heroSubtitleFontSize ?? $legacySubtitleSize ?? DEFAULT_THEME_HERO_SUBTITLE_FONT_SIZE_PX,
+        'heroTitleFontSize' => $heroTitleFontSize ?? $legacyTitleSize ?? DEFAULT_THEME_HERO_TITLE_FONT_SIZE_PX,
+        'heroDescriptionFontSize' => $heroDescriptionFontSize ?? $legacyDescriptionSize ?? DEFAULT_THEME_HERO_DESCRIPTION_FONT_SIZE_PX,
+        'pageTitleFontSize' => $pageTitleFontSize ?? $legacyTitleSize ?? DEFAULT_THEME_PAGE_TITLE_FONT_SIZE_PX,
+        'pageSubtitleFontSize' => $pageSubtitleFontSize ?? $legacySubtitleSize ?? DEFAULT_THEME_PAGE_SUBTITLE_FONT_SIZE_PX,
+        'pageDescriptionFontSize' => $pageDescriptionFontSize ?? $legacyDescriptionSize ?? DEFAULT_THEME_PAGE_DESCRIPTION_FONT_SIZE_PX,
+        'sectionTitleFontSize' => $sectionTitleFontSize ?? $legacyTitleSize ?? DEFAULT_THEME_SECTION_TITLE_FONT_SIZE_PX,
+        'sectionDescriptionFontSize' => $sectionDescriptionFontSize ?? $legacyDescriptionSize ?? DEFAULT_THEME_SECTION_DESCRIPTION_FONT_SIZE_PX
+    ];
+}
+
+function saveThemeTokens(array $tokens): void
+{
+    saveJsonFile(THEME_TOKENS_FILE, [
+        'primaryColor' => (string)($tokens['primaryColor'] ?? DEFAULT_THEME_PRIMARY_COLOR),
+        'backgroundColor' => (string)($tokens['backgroundColor'] ?? DEFAULT_THEME_BACKGROUND_COLOR),
+        'navFontSize' => round((float)($tokens['navFontSize'] ?? DEFAULT_THEME_NAV_FONT_SIZE_PX), 2),
+        'buttonFontSize' => round((float)($tokens['buttonFontSize'] ?? DEFAULT_THEME_BUTTON_FONT_SIZE_PX), 2),
+        'heroSubtitleFontSize' => round((float)($tokens['heroSubtitleFontSize'] ?? DEFAULT_THEME_HERO_SUBTITLE_FONT_SIZE_PX), 2),
+        'heroTitleFontSize' => round((float)($tokens['heroTitleFontSize'] ?? DEFAULT_THEME_HERO_TITLE_FONT_SIZE_PX), 2),
+        'heroDescriptionFontSize' => round((float)($tokens['heroDescriptionFontSize'] ?? DEFAULT_THEME_HERO_DESCRIPTION_FONT_SIZE_PX), 2),
+        'pageTitleFontSize' => round((float)($tokens['pageTitleFontSize'] ?? DEFAULT_THEME_PAGE_TITLE_FONT_SIZE_PX), 2),
+        'pageSubtitleFontSize' => round((float)($tokens['pageSubtitleFontSize'] ?? DEFAULT_THEME_PAGE_SUBTITLE_FONT_SIZE_PX), 2),
+        'pageDescriptionFontSize' => round((float)($tokens['pageDescriptionFontSize'] ?? DEFAULT_THEME_PAGE_DESCRIPTION_FONT_SIZE_PX), 2),
+        'sectionTitleFontSize' => round((float)($tokens['sectionTitleFontSize'] ?? DEFAULT_THEME_SECTION_TITLE_FONT_SIZE_PX), 2),
+        'sectionDescriptionFontSize' => round((float)($tokens['sectionDescriptionFontSize'] ?? DEFAULT_THEME_SECTION_DESCRIPTION_FONT_SIZE_PX), 2)
+    ]);
+}
+
+function ensureThemeTokensFile(): void
+{
+    if (file_exists(THEME_TOKENS_FILE)) {
+        return;
+    }
+
+    $config = loadJsonFile(CONFIG_BASE_FILE);
+    $siteTheme = is_array($config['site']['theme'] ?? null) ? $config['site']['theme'] : [];
+    $primary = normalizeHexColorToken((string)($siteTheme['primaryColor'] ?? '')) ?? DEFAULT_THEME_PRIMARY_COLOR;
+    $background = normalizeHexColorToken((string)($siteTheme['backgroundColor'] ?? '')) ?? DEFAULT_THEME_BACKGROUND_COLOR;
+    $titleSize = normalizeFontSizeToken($siteTheme['titleFontSize'] ?? null);
+    $subtitleSize = normalizeFontSizeToken($siteTheme['subtitleFontSize'] ?? null);
+    $descriptionSize = normalizeFontSizeToken($siteTheme['descriptionFontSize'] ?? null);
+
+    saveThemeTokens([
+        'primaryColor' => $primary,
+        'backgroundColor' => $background,
+        'navFontSize' => DEFAULT_THEME_NAV_FONT_SIZE_PX,
+        'buttonFontSize' => DEFAULT_THEME_BUTTON_FONT_SIZE_PX,
+        'heroSubtitleFontSize' => $subtitleSize ?? DEFAULT_THEME_HERO_SUBTITLE_FONT_SIZE_PX,
+        'heroTitleFontSize' => $titleSize ?? DEFAULT_THEME_HERO_TITLE_FONT_SIZE_PX,
+        'heroDescriptionFontSize' => $descriptionSize ?? DEFAULT_THEME_HERO_DESCRIPTION_FONT_SIZE_PX,
+        'pageTitleFontSize' => $titleSize ?? DEFAULT_THEME_PAGE_TITLE_FONT_SIZE_PX,
+        'pageSubtitleFontSize' => $subtitleSize ?? DEFAULT_THEME_PAGE_SUBTITLE_FONT_SIZE_PX,
+        'pageDescriptionFontSize' => $descriptionSize ?? DEFAULT_THEME_PAGE_DESCRIPTION_FONT_SIZE_PX,
+        'sectionTitleFontSize' => $titleSize ?? DEFAULT_THEME_SECTION_TITLE_FONT_SIZE_PX,
+        'sectionDescriptionFontSize' => $descriptionSize ?? DEFAULT_THEME_SECTION_DESCRIPTION_FONT_SIZE_PX
+    ]);
 }
 
 function loadConfig(): array
@@ -531,7 +659,8 @@ function renderAdminStart(string $title, string $activeKey, array $flash): void
 {
     $items = [
         'menu' => ['label' => 'Menu', 'href' => 'menu.php'],
-        'pages' => ['label' => 'Paginas', 'href' => 'pages.php']
+        'pages' => ['label' => 'Paginas', 'href' => 'pages.php'],
+        'personalizar' => ['label' => 'Personalizar', 'href' => 'personalizar.php']
     ];
     ?>
 <!DOCTYPE html>

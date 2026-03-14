@@ -17,6 +17,7 @@ var FALLBACK_CONFIG = {
 document.addEventListener('DOMContentLoaded', function () {
   resetTransientUiState();
   loadSiteConfig().then(function (config) {
+    applySiteTheme(config);
     setupSharedComponents(config);
     applyPageContent(config);
     setupNavBrand(config);
@@ -63,10 +64,84 @@ function loadSiteConfig() {
     })
     .then(function (config) {
       if (!config || typeof config !== 'object') return FALLBACK_CONFIG;
+      return mergeThemeTokensIntoConfig(config);
+    })
+    .catch(function () {
+      return mergeThemeTokensIntoConfig(FALLBACK_CONFIG);
+    });
+}
+
+function mergeThemeTokensIntoConfig(config) {
+  return fetchJsonNoStore('data/theme.tokens.json')
+    .then(function (themeTokens) {
+      if (!themeTokens || typeof themeTokens !== 'object') {
+        return config;
+      }
+      var primary = normalizeHexColor(themeTokens.primaryColor);
+      var background = normalizeHexColor(themeTokens.backgroundColor);
+      var navFontSize = normalizeThemeFontSize(themeTokens.navFontSize);
+      var buttonFontSize = normalizeThemeFontSize(themeTokens.buttonFontSize);
+      var heroSubtitleFontSize = normalizeThemeFontSize(themeTokens.heroSubtitleFontSize);
+      var heroTitleFontSize = normalizeThemeFontSize(themeTokens.heroTitleFontSize);
+      var heroDescriptionFontSize = normalizeThemeFontSize(themeTokens.heroDescriptionFontSize);
+      var pageTitleFontSize = normalizeThemeFontSize(themeTokens.pageTitleFontSize);
+      var pageSubtitleFontSize = normalizeThemeFontSize(themeTokens.pageSubtitleFontSize);
+      var pageDescriptionFontSize = normalizeThemeFontSize(themeTokens.pageDescriptionFontSize);
+      var sectionTitleFontSize = normalizeThemeFontSize(themeTokens.sectionTitleFontSize);
+      var sectionDescriptionFontSize = normalizeThemeFontSize(themeTokens.sectionDescriptionFontSize);
+      var legacyTitleFontSize = normalizeThemeFontSize(themeTokens.titleFontSize);
+      var legacySubtitleFontSize = normalizeThemeFontSize(themeTokens.subtitleFontSize);
+      var legacyDescriptionFontSize = normalizeThemeFontSize(themeTokens.descriptionFontSize);
+
+      if (
+        !primary && !background &&
+        navFontSize === null && buttonFontSize === null &&
+        heroSubtitleFontSize === null && heroTitleFontSize === null && heroDescriptionFontSize === null &&
+        pageTitleFontSize === null && pageSubtitleFontSize === null && pageDescriptionFontSize === null &&
+        sectionTitleFontSize === null && sectionDescriptionFontSize === null &&
+        legacyTitleFontSize === null && legacySubtitleFontSize === null && legacyDescriptionFontSize === null
+      ) {
+        return config;
+      }
+
+      if (!config.site || typeof config.site !== 'object') {
+        config.site = {};
+      }
+      if (!config.site.theme || typeof config.site.theme !== 'object') {
+        config.site.theme = {};
+      }
+      if (primary) config.site.theme.primaryColor = primary;
+      if (background) config.site.theme.backgroundColor = background;
+      if (navFontSize !== null) config.site.theme.navFontSize = navFontSize;
+      if (buttonFontSize !== null) config.site.theme.buttonFontSize = buttonFontSize;
+      if (heroSubtitleFontSize !== null) config.site.theme.heroSubtitleFontSize = heroSubtitleFontSize;
+      if (heroTitleFontSize !== null) config.site.theme.heroTitleFontSize = heroTitleFontSize;
+      if (heroDescriptionFontSize !== null) config.site.theme.heroDescriptionFontSize = heroDescriptionFontSize;
+      if (pageTitleFontSize !== null) config.site.theme.pageTitleFontSize = pageTitleFontSize;
+      if (pageSubtitleFontSize !== null) config.site.theme.pageSubtitleFontSize = pageSubtitleFontSize;
+      if (pageDescriptionFontSize !== null) config.site.theme.pageDescriptionFontSize = pageDescriptionFontSize;
+      if (sectionTitleFontSize !== null) config.site.theme.sectionTitleFontSize = sectionTitleFontSize;
+      if (sectionDescriptionFontSize !== null) config.site.theme.sectionDescriptionFontSize = sectionDescriptionFontSize;
+
+      // Backward compatibility with old generic font tokens.
+      if (legacyTitleFontSize !== null) {
+        if (config.site.theme.heroTitleFontSize === undefined) config.site.theme.heroTitleFontSize = legacyTitleFontSize;
+        if (config.site.theme.pageTitleFontSize === undefined) config.site.theme.pageTitleFontSize = legacyTitleFontSize;
+        if (config.site.theme.sectionTitleFontSize === undefined) config.site.theme.sectionTitleFontSize = legacyTitleFontSize;
+      }
+      if (legacySubtitleFontSize !== null) {
+        if (config.site.theme.heroSubtitleFontSize === undefined) config.site.theme.heroSubtitleFontSize = legacySubtitleFontSize;
+        if (config.site.theme.pageSubtitleFontSize === undefined) config.site.theme.pageSubtitleFontSize = legacySubtitleFontSize;
+      }
+      if (legacyDescriptionFontSize !== null) {
+        if (config.site.theme.heroDescriptionFontSize === undefined) config.site.theme.heroDescriptionFontSize = legacyDescriptionFontSize;
+        if (config.site.theme.pageDescriptionFontSize === undefined) config.site.theme.pageDescriptionFontSize = legacyDescriptionFontSize;
+        if (config.site.theme.sectionDescriptionFontSize === undefined) config.site.theme.sectionDescriptionFontSize = legacyDescriptionFontSize;
+      }
       return config;
     })
     .catch(function () {
-      return FALLBACK_CONFIG;
+      return config;
     });
 }
 
@@ -79,6 +154,99 @@ function fetchJsonNoStore(path) {
     .catch(function () {
       return null;
     });
+}
+
+function applySiteTheme(config) {
+  if (!document || !document.documentElement) return;
+  var theme = (config && config.site && config.site.theme) || {};
+  var primary = normalizeHexColor(theme.primaryColor) || '#0F5EA6';
+  var background = normalizeHexColor(theme.backgroundColor) || '#F6F2E9';
+  var navFontSize = normalizeThemeFontSize(theme.navFontSize);
+  var buttonFontSize = normalizeThemeFontSize(theme.buttonFontSize);
+  var heroSubtitleFontSize = normalizeThemeFontSize(theme.heroSubtitleFontSize);
+  var heroTitleFontSize = normalizeThemeFontSize(theme.heroTitleFontSize);
+  var heroDescriptionFontSize = normalizeThemeFontSize(theme.heroDescriptionFontSize);
+  var pageTitleFontSize = normalizeThemeFontSize(theme.pageTitleFontSize);
+  var pageSubtitleFontSize = normalizeThemeFontSize(theme.pageSubtitleFontSize);
+  var pageDescriptionFontSize = normalizeThemeFontSize(theme.pageDescriptionFontSize);
+  var sectionTitleFontSize = normalizeThemeFontSize(theme.sectionTitleFontSize);
+  var sectionDescriptionFontSize = normalizeThemeFontSize(theme.sectionDescriptionFontSize);
+  var primaryDark = adjustHexLightness(primary, -28);
+  var primaryLight = adjustHexLightness(primary, 16);
+  var menuSoft = hexToRgba(primary, 0.3);
+
+  var rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--brand', primary);
+  rootStyle.setProperty('--brand-dark', primaryDark);
+  rootStyle.setProperty('--brand-2', primaryLight);
+  rootStyle.setProperty('--brand-soft', menuSoft);
+  rootStyle.setProperty('--bg', background);
+  rootStyle.setProperty('--font-nav-size', String(navFontSize !== null ? navFontSize : 15.36) + 'px');
+  rootStyle.setProperty('--font-button-size', String(buttonFontSize !== null ? buttonFontSize : 14.4) + 'px');
+  rootStyle.setProperty('--font-hero-subtitle-size', String(heroSubtitleFontSize !== null ? heroSubtitleFontSize : 12.48) + 'px');
+  rootStyle.setProperty('--font-hero-title-size', String(heroTitleFontSize !== null ? heroTitleFontSize : 56) + 'px');
+  rootStyle.setProperty('--font-hero-description-size', String(heroDescriptionFontSize !== null ? heroDescriptionFontSize : 16) + 'px');
+  rootStyle.setProperty('--font-page-title-size', String(pageTitleFontSize !== null ? pageTitleFontSize : 36.8) + 'px');
+  rootStyle.setProperty('--font-page-subtitle-size', String(pageSubtitleFontSize !== null ? pageSubtitleFontSize : 13.12) + 'px');
+  rootStyle.setProperty('--font-page-description-size', String(pageDescriptionFontSize !== null ? pageDescriptionFontSize : 16) + 'px');
+  rootStyle.setProperty('--font-section-title-size', String(sectionTitleFontSize !== null ? sectionTitleFontSize : 17.28) + 'px');
+  rootStyle.setProperty('--font-section-description-size', String(sectionDescriptionFontSize !== null ? sectionDescriptionFontSize : 16) + 'px');
+}
+
+function normalizeHexColor(value) {
+  if (typeof value !== 'string') return null;
+  var raw = value.trim();
+  if (!raw) return null;
+  if (raw.charAt(0) !== '#') raw = '#' + raw;
+  if (!/^#[0-9a-fA-F]{6}$/.test(raw)) return null;
+  return raw.toUpperCase();
+}
+
+function normalizeThemeFontSize(value) {
+  if (value === null || value === undefined || value === '') return null;
+  var parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < 10 || parsed > 96) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+function adjustHexLightness(hex, percent) {
+  var rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  var p = Math.max(-100, Math.min(100, Number(percent) || 0)) / 100;
+  var mix = p < 0 ? 0 : 255;
+  var amount = Math.abs(p);
+
+  var r = Math.round(rgb.r + (mix - rgb.r) * amount);
+  var g = Math.round(rgb.g + (mix - rgb.g) * amount);
+  var b = Math.round(rgb.b + (mix - rgb.b) * amount);
+  return rgbToHex(r, g, b);
+}
+
+function hexToRgba(hex, alpha) {
+  var rgb = hexToRgb(hex);
+  if (!rgb) return 'rgba(15, 94, 166, 0.3)';
+  var safeAlpha = Math.max(0, Math.min(1, Number(alpha)));
+  return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + safeAlpha + ')';
+}
+
+function hexToRgb(hex) {
+  var normalized = normalizeHexColor(hex);
+  if (!normalized) return null;
+  return {
+    r: parseInt(normalized.slice(1, 3), 16),
+    g: parseInt(normalized.slice(3, 5), 16),
+    b: parseInt(normalized.slice(5, 7), 16)
+  };
+}
+
+function rgbToHex(r, g, b) {
+  function toHex(channel) {
+    var safe = Math.max(0, Math.min(255, channel | 0));
+    var out = safe.toString(16).toUpperCase();
+    return out.length === 1 ? '0' + out : out;
+  }
+  return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
 function setupSharedComponents(config) {
@@ -145,7 +313,11 @@ function renderNavbarComponent(config) {
     if (isActive) classNames.push('active');
 
     html += '<li' + (classNames.length ? ' class="' + classNames.join(' ') + '"' : '') + '>';
-    html += '<a href="' + escapeHtml(resolveHref(item)) + '"' + (hasDropdown ? ' class="dropdown-toggle"' : '') + '>' + escapeHtml(item.label || 'Item') + '</a>';
+    if (hasDropdown) {
+      html += '<button type="button" class="dropdown-toggle nav-parent-toggle" aria-expanded="false">' + escapeHtml(item.label || 'Item') + '</button>';
+    } else {
+      html += '<a href="' + escapeHtml(resolveHref(item)) + '">' + escapeHtml(item.label || 'Item') + '</a>';
+    }
 
     if (hasDropdown) {
       html += '<ul class="nav-dropdown">';
@@ -360,7 +532,7 @@ function renderDynamicComponents(config, pageKey, pageComponents) {
       dynamicRoot.appendChild(buildPhotoSliderNode(component, index));
       return;
     }
-    if (type === 'gallery') {
+    if (type === 'gallery' || type === 'gallery-folder') {
       dynamicRoot.appendChild(buildGalleryNode(component, index));
     }
   });
@@ -483,6 +655,9 @@ function buildPhotoSliderNode(component, index) {
 }
 
 function buildGalleryNode(component, index) {
+  if (component && component.type === 'gallery-folder') {
+    return buildGalleryFolderNode(component, index);
+  }
   var node = document.createElement('section');
   node.className = 'dynamic-section reveal-on-scroll';
   node.setAttribute('data-dynamic-index', String(index));
@@ -512,6 +687,97 @@ function buildGalleryNode(component, index) {
   });
   node.appendChild(grid);
   return node;
+}
+
+function buildGalleryFolderNode(component, index) {
+  var node = document.createElement('section');
+  node.className = 'dynamic-section dynamic-folder-gallery reveal-on-scroll';
+  node.setAttribute('data-dynamic-index', String(index));
+
+  var settings = component && component.settings ? component.settings : {};
+  var folderName = (settings.folderName || '').trim();
+  var folderSlug = (settings.folder || '').trim();
+  var folderLabel = folderName || folderSlug || 'Pasta de imagens';
+  var items = Array.isArray(component.items) ? component.items : [];
+
+  var trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'folder-gallery-trigger';
+  trigger.setAttribute('aria-label', 'Abrir galeria da pasta ' + folderLabel);
+  trigger.innerHTML =
+    '<span class="folder-gallery-icon" aria-hidden="true"></span>' +
+    '<span class="folder-gallery-text"><strong>' + escapeHtml(folderLabel) + '</strong><small>' + (items.length ? (items.length + ' foto(s)') : 'Sem fotos ainda') + '</small></span>' +
+    '<span class="folder-gallery-arrow" aria-hidden="true">&rarr;</span>';
+  trigger.addEventListener('click', function () {
+    openFolderGalleryModal(folderLabel, items);
+  });
+
+  node.appendChild(trigger);
+  return node;
+}
+
+function openFolderGalleryModal(folderLabel, items) {
+  var existing = document.querySelector('[data-folder-gallery-modal]');
+  if (existing) existing.remove();
+
+  var modal = document.createElement('div');
+  modal.className = 'folder-gallery-modal';
+  modal.setAttribute('data-folder-gallery-modal', '1');
+
+  var dialog = document.createElement('div');
+  dialog.className = 'folder-gallery-modal-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-label', 'Galeria da pasta ' + folderLabel);
+
+  var head = document.createElement('div');
+  head.className = 'folder-gallery-modal-head';
+
+  var title = document.createElement('strong');
+  title.textContent = folderLabel;
+  var close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'folder-gallery-modal-close';
+  close.setAttribute('aria-label', 'Fechar galeria da pasta');
+  close.textContent = 'x';
+  close.addEventListener('click', function () {
+    modal.remove();
+    document.body.classList.remove('folder-gallery-open');
+  });
+  head.appendChild(title);
+  head.appendChild(close);
+
+  var body = document.createElement('div');
+  body.className = 'folder-gallery-modal-body';
+  if (Array.isArray(items) && items.length) {
+    var grid = document.createElement('div');
+    grid.className = 'galeria';
+    items.forEach(function (item, itemIdx) {
+      if (!item || !item.file) return;
+      var figure = document.createElement('figure');
+      figure.innerHTML = '<img src="' + escapeHtml(item.file) + '" alt="' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '"><figcaption><strong class="gallery-card-title">' + escapeHtml(item.title || ('Foto ' + (itemIdx + 1))) + '</strong><span class="gallery-card-caption">' + escapeHtml(item.subtitle || '') + '</span></figcaption>';
+      grid.appendChild(figure);
+    });
+    body.appendChild(grid);
+  } else {
+    var empty = document.createElement('p');
+    empty.className = 'link-desc';
+    empty.textContent = 'Essa pasta ainda nao possui fotos.';
+    body.appendChild(empty);
+  }
+
+  dialog.appendChild(head);
+  dialog.appendChild(body);
+  modal.appendChild(dialog);
+  modal.addEventListener('click', function (event) {
+    if (event.target === modal) {
+      modal.remove();
+      document.body.classList.remove('folder-gallery-open');
+    }
+  });
+
+  document.body.appendChild(modal);
+  document.body.classList.add('folder-gallery-open');
 }
 
 function setupManualSlider(sliderRoot, items) {
@@ -665,6 +931,9 @@ function setupMobileNavToggle() {
     navWrap.querySelectorAll('.nav-list > li.dropdown-open').forEach(function (li) {
       li.classList.remove('dropdown-open');
     });
+    navWrap.querySelectorAll('.nav-list > li > .dropdown-toggle').forEach(function (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    });
   }
 
   function navHasWrappedItems() {
@@ -714,7 +983,7 @@ function setupMobileNavToggle() {
     closeNav();
   });
 
-  navWrap.querySelectorAll('.nav-list > li > a').forEach(function (link) {
+  navWrap.querySelectorAll('.nav-list > li > a, .nav-list > li > .nav-parent-toggle').forEach(function (link) {
     link.addEventListener('click', function () {
       var parent = link.parentElement;
       var hasDropdown = parent && parent.classList.contains('has-dropdown');
@@ -751,19 +1020,24 @@ function setupMobileNavToggle() {
 function setupMobileDropdown() {
   var navWrap = document.querySelector('.nav-wrap');
   var navItems = document.querySelectorAll('.nav-list > li.has-dropdown');
+  function syncExpandedState() {
+    navItems.forEach(function (item) {
+      var toggle = item.querySelector(':scope > .dropdown-toggle');
+      if (!toggle) return;
+      toggle.setAttribute('aria-expanded', item.classList.contains('dropdown-open') ? 'true' : 'false');
+    });
+  }
   navItems.forEach(function (li) {
-    var link = li.querySelector(':scope > a');
+    var link = li.querySelector(':scope > .dropdown-toggle');
     if (!link) return;
 
     link.addEventListener('click', function (e) {
-      if (navWrap && navWrap.classList.contains('nav-collapsed')) {
-        e.preventDefault();
-
-        navItems.forEach(function (item) {
-          if (item !== li) item.classList.remove('dropdown-open');
-        });
-        li.classList.toggle('dropdown-open');
-      }
+      e.preventDefault();
+      navItems.forEach(function (item) {
+        if (item !== li) item.classList.remove('dropdown-open');
+      });
+      li.classList.toggle('dropdown-open');
+      syncExpandedState();
     });
   });
 
@@ -774,6 +1048,7 @@ function setupMobileDropdown() {
     navItems.forEach(function (li) {
       li.classList.remove('dropdown-open');
     });
+    syncExpandedState();
     var toggle = navWrap ? navWrap.querySelector('.nav-toggle') : null;
     if (navWrap) {
       navWrap.classList.remove('nav-open');
@@ -784,6 +1059,7 @@ function setupMobileDropdown() {
       toggle.setAttribute('aria-label', 'Abrir menu de navegacao');
     }
   });
+  syncExpandedState();
 }
 
 function setupDesktopDropdownHover() {

@@ -92,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update-menu-item') {
         $itemId = trim((string)($_POST['item_id'] ?? ''));
         $label = trim((string)($_POST['item_label'] ?? ''));
-        $href = trim((string)($_POST['item_href'] ?? ''));
         $parentId = trim((string)($_POST['item_parent_id'] ?? ''));
         $visible = isset($_POST['item_visible']);
 
@@ -102,8 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: menu.php');
             exit;
         }
-        if ($label === '' || $href === '') {
-            addFlash('errors', 'Nome e link do menu sao obrigatorios.');
+        if ($label === '') {
+            addFlash('errors', 'Nome do menu e obrigatorio.');
             header('Location: menu.php');
             exit;
         }
@@ -121,7 +120,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $oldParent = $config['menu'][$idx]['parentId'] ?? null;
         $newParent = $parentId !== '' ? $parentId : null;
         $config['menu'][$idx]['label'] = $label;
-        $config['menu'][$idx]['href'] = $href;
         $config['menu'][$idx]['parentId'] = $newParent;
         $config['menu'][$idx]['visible'] = $visible;
         if ($oldParent !== $newParent) {
@@ -194,7 +192,16 @@ renderAdminStart('Menu', 'menu', pullFlash());
               </form>
               <input type="text" name="item_label" form="<?php echo h($formId); ?>" value="<?php echo h((string)($item['label'] ?? '')); ?>" class="admin-table-input" required>
             </td>
-            <td><input type="text" name="item_href" form="<?php echo h($formId); ?>" value="<?php echo h((string)($item['href'] ?? '')); ?>" class="admin-table-input" required></td>
+            <td>
+              <input
+                type="text"
+                value="<?php echo h((string)($item['href'] ?? '')); ?>"
+                class="admin-table-input"
+                readonly
+                aria-readonly="true"
+                title="A URL nao pode ser alterada apos salvar o item."
+              >
+            </td>
             <td>
               <select name="item_parent_id" form="<?php echo h($formId); ?>" class="admin-table-select">
                 <option value="">(item principal)</option>

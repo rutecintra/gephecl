@@ -13,7 +13,8 @@ const COMPONENT_TYPES = [
     'photo-slider',
     'documents',
     'links',
-    'gallery'
+    'gallery',
+    'gallery-folder'
 ];
 
 function componentLabel(string $type): string
@@ -23,11 +24,12 @@ function componentLabel(string $type): string
         'home-hero' => 'Secao principal',
         'cards' => 'Cards',
         'details' => 'Detalhes',
-        'photo-carousel' => 'Carousel de fotos',
+        'photo-carousel' => 'Carrossel de fotos',
         'photo-slider' => 'Slide de fotos',
         'documents' => 'Documentos',
         'links' => 'Links',
-        'gallery' => 'Galeria'
+        'gallery' => 'Galeria',
+        'gallery-folder' => 'Pasta de imagens'
     ];
     return $labels[$type] ?? $type;
 }
@@ -43,9 +45,171 @@ function componentDescription(string $type): string
         'photo-slider' => 'Slide automatico de fotos.',
         'documents' => 'Lista de documentos com titulo e descricao opcional.',
         'links' => 'Lista de links com titulo e URL.',
-        'gallery' => 'Galeria com escolha de visualizacao padrao: grade ou carousel.'
+        'gallery' => 'Galeria com escolha de visualizacao padrao: grade ou carrossel.',
+        'gallery-folder' => 'Galeria por pasta com URL automatica e adicao guiada de fotos.'
     ];
     return $map[$type] ?? '';
+}
+
+function normalizeGalleryFolder(string $value): string
+{
+    $value = trim(str_replace('\\', '/', $value));
+    if ($value === '') {
+        return '';
+    }
+
+    $segments = explode('/', $value);
+    $safeSegments = [];
+    foreach ($segments as $segment) {
+        $segment = trim($segment);
+        if ($segment === '' || $segment === '.' || $segment === '..') {
+            continue;
+        }
+        $segment = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $segment);
+        $segment = trim((string)$segment, '-_');
+        if ($segment !== '') {
+            $safeSegments[] = $segment;
+        }
+    }
+
+    return implode('/', $safeSegments);
+}
+
+function fileTitleFromName(string $fileName, int $index): string
+{
+    $base = pathinfo($fileName, PATHINFO_FILENAME);
+    $base = preg_replace('/[_-]+/', ' ', (string)$base);
+    $base = trim((string)$base);
+    return $base !== '' ? ucwords($base) : ('Foto ' . $index);
+}
+
+function buildGalleryItemsFromFolder(string $folder, array $previousItems = []): array
+{
+    $folder = normalizeGalleryFolder($folder);
+    if ($folder === '') {
+        return [];
+    }
+
+    $targetDir = PHOTOS_DIR . '/' . $folder;
+    if (!is_dir($targetDir)) {
+        return [];
+    }
+
+    $entries = scandir($targetDir);
+    if (!is_array($entries)) {
+        return [];
+    }
+
+    $existingByFile = [];
+    foreach ($previousItems as $item) {
+        $file = trim((string)($item['file'] ?? ''));
+        if ($file !== '') {
+            $existingByFile[$file] = [
+                'title' => trim((string)($item['title'] ?? '')),
+                'subtitle' => trim((string)($item['subtitle'] ?? ''))
+            ];
+        }
+    }
+
+    $imageFiles = [];
+    foreach ($entries as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $fullPath = $targetDir . '/' . $entry;
+        if (!is_file($fullPath)) {
+            continue;
+        }
+        $ext = strtolower((string)pathinfo($entry, PATHINFO_EXTENSION));
+        if (!in_array($ext, ALLOWED_IMAGE_EXT, true)) {
+            continue;
+        }
+        $imageFiles[] = $entry;
+    }
+
+    natsort($imageFiles);
+    $items = [];
+    $position = 1;
+    foreach ($imageFiles as $fileName) {
+        $relativeFile = 'uploads/fotos/' . $folder . '/' . $fileName;
+        $existing = $existingByFile[$relativeFile] ?? ['title' => '', 'subtitle' => ''];
+        $items[] = [
+            'id' => randomToken(10),
+            'title' => $existing['title'] !== '' ? $existing['title'] : fileTitleFromName((string)$fileName, $position),
+            'subtitle' => $existing['subtitle'],
+            'file' => $relativeFile
+        ];
+        $position += 1;
+    }
+
+    return $items;
+}
+
+function buildPageSelectOptions(array $config): array
+{
+    $pages = is_array($config['pages'] ?? null) ? $config['pages'] : [];
+    $menu = is_array($config['menu'] ?? null) ? $config['menu'] : [];
+    $options = [];
+
+    foreach ($menu as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        if (($item['visible'] ?? true) === false) {
+            continue;
+        }
+        $page = normalizeSlug((string)($item['page'] ?? ''));
+        if ($page === '' || !isset($pages[$page]) || isset($options[$page])) {
+            continue;
+        }
+        $label = trim((string)($item['label'] ?? ''));
+        if ($label === '') {
+            $label = (string)($pages[$page]['title'] ?? $page);
+        }
+        $options[$page] = $label;
+    }
+
+    if (!empty($options)) {
+        return $options;
+    }
+
+    foreach ($pages as $slug => $page) {
+        $slug = normalizeSlug((string)$slug);
+        if ($slug === '') {
+            continue;
+        }
+        $options[$slug] = (string)($page['title'] ?? $slug);
+    }
+
+    return $options;
+}
+
+function normalizeUploadedFilesList(string $inputName): array
+{
+    if (empty($_FILES[$inputName]) || !is_array($_FILES[$inputName])) {
+        return [];
+    }
+    $files = $_FILES[$inputName];
+    if (!isset($files['name'])) {
+        return [];
+    }
+
+    if (!is_array($files['name'])) {
+        return [$files];
+    }
+
+    $normalized = [];
+    $total = count($files['name']);
+    for ($i = 0; $i < $total; $i++) {
+        $normalized[] = [
+            'name' => (string)($files['name'][$i] ?? ''),
+            'type' => (string)($files['type'][$i] ?? ''),
+            'tmp_name' => (string)($files['tmp_name'][$i] ?? ''),
+            'error' => (int)($files['error'][$i] ?? UPLOAD_ERR_NO_FILE),
+            'size' => (int)($files['size'][$i] ?? 0)
+        ];
+    }
+    return $normalized;
 }
 
 function findComponentIndex(array $components, string $componentId): int
@@ -126,6 +290,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($type === 'gallery') {
             $newComponent['settings']['view'] = 'grid';
         }
+        if ($type === 'gallery-folder') {
+            $newComponent['settings']['view'] = 'grid';
+            $newComponent['settings']['folderName'] = '';
+            $newComponent['settings']['folder'] = '';
+        }
         $config['pageComponents'][$slug][] = $newComponent;
         saveConfig($config);
         addFlash('messages', 'Secao adicionada na pagina.');
@@ -172,7 +341,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'update-component') {
-        $component['title'] = trim((string)($_POST['component_title'] ?? ''));
+        $component['title'] = $component['type'] === 'gallery-folder'
+            ? ''
+            : trim((string)($_POST['component_title'] ?? ''));
 
         if ($component['type'] === 'title-subtitle') {
             $component['settings']['title'] = trim((string)($_POST['title_subtitle_title'] ?? ''));
@@ -190,6 +361,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($component['type'] === 'gallery') {
             $view = trim((string)($_POST['gallery_view'] ?? 'grid'));
             $component['settings']['view'] = $view === 'slider' ? 'slider' : 'grid';
+        } elseif ($component['type'] === 'gallery-folder') {
+            $folderName = trim((string)($_POST['gallery_folder_name'] ?? ''));
+            $folder = normalizeGalleryFolder($folderName);
+            if ($folder === '') {
+                addFlash('errors', 'Informe um nome valido para a pasta de imagens.');
+                header('Location: pages.php?page=' . rawurlencode($slug));
+                exit;
+            }
+            $previousFolder = normalizeGalleryFolder((string)($component['settings']['folder'] ?? ''));
+            $component['settings']['view'] = 'grid';
+            $component['settings']['folderName'] = $folderName;
+            $component['settings']['folder'] = $folder;
+            if ($previousFolder !== '' && $previousFolder !== $folder) {
+                $component['items'] = [];
+            }
+            $component['items'] = buildGalleryItemsFromFolder($folder, $component['items']);
         }
 
         if ($component['type'] === 'cards') {
@@ -204,7 +391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $component['items'][$idx]['description'] = trim((string)($descriptions[$itemId] ?? ($item['description'] ?? '')));
             }
         }
-        if (in_array($component['type'], ['photo-carousel', 'photo-slider', 'gallery'], true)) {
+        if (in_array($component['type'], ['photo-carousel', 'photo-slider', 'gallery', 'gallery-folder'], true)) {
             $titles = $_POST['item_title'] ?? [];
             $subtitles = $_POST['item_subtitle'] ?? [];
             foreach ($component['items'] as $idx => $item) {
@@ -289,13 +476,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: pages.php?page=' . rawurlencode($slug));
                 exit;
             }
-        } elseif (in_array($component['type'], ['photo-carousel', 'photo-slider', 'gallery'], true)) {
+        } elseif (in_array($component['type'], ['photo-carousel', 'photo-slider', 'gallery', 'gallery-folder'], true)) {
             if (empty($_FILES['new_image'])) {
                 addFlash('errors', 'Selecione uma imagem para adicionar.');
                 header('Location: pages.php?page=' . rawurlencode($slug));
                 exit;
             }
-            $saved = saveUploadedFile($_FILES['new_image'], PHOTOS_DIR, ALLOWED_IMAGE_EXT, MAX_FILE_SIZE, true);
+            $targetDir = PHOTOS_DIR;
+            $relativeFilePrefix = 'uploads/fotos/';
+            if ($component['type'] === 'gallery-folder') {
+                $folder = normalizeGalleryFolder((string)($component['settings']['folder'] ?? ''));
+                if ($folder === '') {
+                    addFlash('errors', 'Salve a pasta de imagens antes de adicionar fotos.');
+                    header('Location: pages.php?page=' . rawurlencode($slug));
+                    exit;
+                }
+                $targetDir = PHOTOS_DIR . '/' . $folder;
+                ensureDir($targetDir);
+                $relativeFilePrefix = 'uploads/fotos/' . $folder . '/';
+            }
+            $saved = saveUploadedFile($_FILES['new_image'], $targetDir, ALLOWED_IMAGE_EXT, MAX_FILE_SIZE, true);
             if (!$saved['ok']) {
                 addFlash('errors', (string)$saved['error']);
                 header('Location: pages.php?page=' . rawurlencode($slug));
@@ -303,7 +503,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $newItem['title'] = trim((string)($_POST['new_title'] ?? ''));
             $newItem['subtitle'] = trim((string)($_POST['new_subtitle'] ?? ''));
-            $newItem['file'] = 'uploads/fotos/' . $saved['file'];
+            $newItem['file'] = $relativeFilePrefix . $saved['file'];
+            if ($component['type'] === 'gallery-folder') {
+                $folder = normalizeGalleryFolder((string)($component['settings']['folder'] ?? ''));
+                $component['items'][] = $newItem;
+                $component['items'] = buildGalleryItemsFromFolder($folder, $component['items']);
+                $config['pageComponents'][$slug][$componentIdx] = $component;
+                saveConfig($config);
+                addFlash('messages', 'Foto adicionada na pasta e sincronizada com a galeria.');
+                header('Location: pages.php?page=' . rawurlencode($slug));
+                exit;
+            }
         } elseif ($component['type'] === 'documents') {
             if (empty($_FILES['new_document'])) {
                 addFlash('errors', 'Selecione um documento para adicionar.');
@@ -370,6 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $config = loadConfig();
 ensurePageComponents($config);
 $selectedPage = normalizeSlug((string)($_GET['page'] ?? $selectedPage));
+$pageSelectOptions = buildPageSelectOptions($config);
 $pageIsValid = $selectedPage !== '' && !empty($config['pages'][$selectedPage]);
 $pageComponents = $pageIsValid ? ($config['pageComponents'][$selectedPage] ?? []) : [];
 
@@ -380,17 +591,14 @@ renderAdminStart('Paginas', 'pages', pullFlash());
   <form method="get" class="admin-grid admin-inline">
     <div class="admin-field">
       <label for="page">Pagina para editar</label>
-      <select id="page" name="page">
+      <select id="page" name="page" onchange="this.form.submit()">
         <option value="">Selecione uma pagina...</option>
-        <?php foreach ($config['pages'] as $slug => $page): ?>
+        <?php foreach ($pageSelectOptions as $slug => $label): ?>
           <option value="<?php echo h((string)$slug); ?>" <?php echo $selectedPage === $slug ? 'selected' : ''; ?>>
-            <?php echo h((string)$slug); ?>
+            <?php echo h((string)$label); ?>
           </option>
         <?php endforeach; ?>
       </select>
-    </div>
-    <div class="admin-actions">
-      <button type="submit" class="btn-admin secundario">Abrir</button>
     </div>
   </form>
 </section>
@@ -414,6 +622,7 @@ renderAdminStart('Paginas', 'pages', pullFlash());
       $title = (string)($component['title'] ?? '');
       $settings = is_array($component['settings'] ?? null) ? $component['settings'] : [];
       $items = is_array($component['items'] ?? null) ? $component['items'] : [];
+      $isHeavyUploadType = in_array($type, ['photo-carousel', 'photo-slider', 'gallery', 'gallery-folder', 'documents'], true);
       $componentFormClass = 'admin-grid';
       if (in_array($type, ['title-subtitle', 'home-hero', 'links'], true)) {
           $componentFormClass = 'admin-grid admin-form-compact';
@@ -453,10 +662,12 @@ renderAdminStart('Paginas', 'pages', pullFlash());
         <input type="hidden" name="action" value="update-component">
         <input type="hidden" name="page_slug" value="<?php echo h($selectedPage); ?>">
         <input type="hidden" name="component_id" value="<?php echo h($componentId); ?>">
-        <div class="admin-field admin-field-full">
-          <label>Titulo da secao (opcional)</label>
-          <input type="text" name="component_title" value="<?php echo h($title); ?>">
-        </div>
+        <?php if ($type !== 'gallery-folder'): ?>
+          <div class="admin-field admin-field-full">
+            <label>Titulo da secao (opcional)</label>
+            <input type="text" name="component_title" value="<?php echo h($title); ?>">
+          </div>
+        <?php endif; ?>
 
         <?php if ($type === 'title-subtitle'): ?>
           <div class="admin-field">
@@ -517,6 +728,26 @@ renderAdminStart('Paginas', 'pages', pullFlash());
           </div>
         <?php endif; ?>
 
+        <?php if ($type === 'gallery-folder'): ?>
+          <?php
+            $folderNameValue = trim((string)($settings['folderName'] ?? $settings['folder'] ?? ''));
+            $folderSlugValue = normalizeGalleryFolder((string)($settings['folder'] ?? ''));
+            if ($folderSlugValue === '' && $folderNameValue !== '') {
+                $folderSlugValue = normalizeGalleryFolder($folderNameValue);
+            }
+          ?>
+          <div class="admin-field">
+            <label>Nome da pasta</label>
+            <input type="text" name="gallery_folder_name" value="<?php echo h($folderNameValue); ?>" placeholder="Evento X" required>
+            <p class="link-desc">Use um nome simples. Ao salvar, o sistema gera automaticamente a URL da pasta.</p>
+          </div>
+          <?php if (!empty($items)): ?>
+            <div class="admin-field admin-field-full">
+              <p class="link-desc"><?php echo h((string)count($items)); ?> foto(s) adicionada(s) nesta pasta.</p>
+            </div>
+          <?php endif; ?>
+        <?php endif; ?>
+
         <?php if ($type === 'cards' && !empty($items)): ?>
           <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
             <div class="admin-subitem">
@@ -535,42 +766,66 @@ renderAdminStart('Paginas', 'pages', pullFlash());
           <?php endforeach; ?>
         <?php endif; ?>
 
-        <?php if (in_array($type, ['photo-carousel', 'photo-slider', 'gallery'], true) && !empty($items)): ?>
-          <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
-            <div class="admin-subitem">
-              <p class="link-desc">Arquivo: <code><?php echo h((string)($item['file'] ?? '')); ?></code></p>
-              <div class="admin-field">
-                <label>Titulo da foto</label>
-                <input type="text" name="item_title[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['title'] ?? '')); ?>">
-              </div>
-              <div class="admin-field">
-                <label>Subtitulo</label>
-                <input type="text" name="item_subtitle[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['subtitle'] ?? '')); ?>">
-              </div>
-              <div class="admin-actions admin-subitem-actions">
-                <button type="submit" form="<?php echo h('remove-item-' . $componentId . '-' . $itemId); ?>" class="btn-admin secundario">Remover item</button>
-              </div>
+        <?php if (in_array($type, ['photo-carousel', 'photo-slider', 'gallery', 'gallery-folder'], true) && !empty($items)): ?>
+          <details class="admin-items-collapse">
+            <summary>Fotos adicionadas (<?php echo h((string)count($items)); ?>)</summary>
+            <div class="admin-items-collapse-body">
+              <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
+                <details class="admin-item-collapse">
+                  <summary>
+                    <span><?php echo h((string)($item['title'] ?? '')); ?></span>
+                    <span><code><?php echo h((string)basename((string)($item['file'] ?? ''))); ?></code></span>
+                  </summary>
+                  <div class="admin-subitem">
+                    <p class="link-desc">Arquivo: <code><?php echo h((string)($item['file'] ?? '')); ?></code></p>
+                    <div class="admin-grid admin-grid-2">
+                      <div class="admin-field">
+                        <label>Titulo da foto</label>
+                        <input type="text" name="item_title[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['title'] ?? '')); ?>">
+                      </div>
+                      <div class="admin-field">
+                        <label>Subtitulo</label>
+                        <input type="text" name="item_subtitle[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['subtitle'] ?? '')); ?>">
+                      </div>
+                    </div>
+                    <div class="admin-actions admin-subitem-actions">
+                      <button type="submit" form="<?php echo h('remove-item-' . $componentId . '-' . $itemId); ?>" class="btn-admin secundario">Remover item</button>
+                    </div>
+                  </div>
+                </details>
+              <?php endforeach; ?>
             </div>
-          <?php endforeach; ?>
+          </details>
         <?php endif; ?>
 
         <?php if ($type === 'documents' && !empty($items)): ?>
-          <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
-            <div class="admin-subitem">
-              <p class="link-desc">Arquivo: <code><?php echo h((string)($item['file'] ?? '')); ?></code></p>
-              <div class="admin-field">
-                <label>Titulo do documento (opcional)</label>
-                <input type="text" name="item_title[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['title'] ?? '')); ?>">
-              </div>
-              <div class="admin-field">
-                <label>Descricao (opcional)</label>
-                <textarea rows="3" name="item_description[<?php echo h($itemId); ?>]"><?php echo h((string)($item['description'] ?? '')); ?></textarea>
-              </div>
-              <div class="admin-actions admin-subitem-actions">
-                <button type="submit" form="<?php echo h('remove-item-' . $componentId . '-' . $itemId); ?>" class="btn-admin secundario">Remover item</button>
-              </div>
+          <details class="admin-items-collapse">
+            <summary>Documentos adicionados (<?php echo h((string)count($items)); ?>)</summary>
+            <div class="admin-items-collapse-body">
+              <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
+                <details class="admin-item-collapse">
+                  <summary>
+                    <span><?php echo h((string)($item['title'] ?? 'Documento')); ?></span>
+                    <span><code><?php echo h((string)basename((string)($item['file'] ?? ''))); ?></code></span>
+                  </summary>
+                  <div class="admin-subitem">
+                    <p class="link-desc">Arquivo: <code><?php echo h((string)($item['file'] ?? '')); ?></code></p>
+                    <div class="admin-field">
+                      <label>Titulo do documento (opcional)</label>
+                      <input type="text" name="item_title[<?php echo h($itemId); ?>]" value="<?php echo h((string)($item['title'] ?? '')); ?>">
+                    </div>
+                    <div class="admin-field">
+                      <label>Descricao (opcional)</label>
+                      <textarea rows="3" name="item_description[<?php echo h($itemId); ?>]"><?php echo h((string)($item['description'] ?? '')); ?></textarea>
+                    </div>
+                    <div class="admin-actions admin-subitem-actions">
+                      <button type="submit" form="<?php echo h('remove-item-' . $componentId . '-' . $itemId); ?>" class="btn-admin secundario">Remover item</button>
+                    </div>
+                  </div>
+                </details>
+              <?php endforeach; ?>
             </div>
-          <?php endforeach; ?>
+          </details>
         <?php endif; ?>
 
         <?php if ($type === 'links' && !empty($items)): ?>
@@ -617,38 +872,70 @@ renderAdminStart('Paginas', 'pages', pullFlash());
       <?php endif; ?>
 
       <?php
-        $itemTypes = ['cards', 'photo-carousel', 'photo-slider', 'documents', 'links', 'gallery'];
+        $itemTypes = ['cards', 'photo-carousel', 'photo-slider', 'documents', 'links', 'gallery', 'gallery-folder'];
+        $removeFormTypes = ['cards', 'photo-carousel', 'photo-slider', 'documents', 'links', 'gallery', 'gallery-folder'];
       ?>
       <?php if (in_array($type, $itemTypes, true)): ?>
-        <form method="post" enctype="multipart/form-data" class="admin-grid admin-form-compact">
-          <input type="hidden" name="action" value="add-item">
-          <input type="hidden" name="page_slug" value="<?php echo h($selectedPage); ?>">
-          <input type="hidden" name="component_id" value="<?php echo h($componentId); ?>">
-
-          <?php if ($type === 'cards'): ?>
-            <div class="admin-field"><label>Titulo</label><input type="text" name="new_title" required></div>
-            <div class="admin-field"><label>Descricao</label><input type="text" name="new_description"></div>
-          <?php elseif (in_array($type, ['photo-carousel', 'photo-slider', 'gallery'], true)): ?>
-            <div class="admin-field"><label>Titulo da foto (opcional)</label><input type="text" name="new_title"></div>
-            <div class="admin-field"><label>Subtitulo (opcional)</label><input type="text" name="new_subtitle"></div>
-            <div class="admin-field"><label>Imagem</label><input type="file" name="new_image" accept=".jpg,.jpeg,.png,.webp,.gif" required></div>
-          <?php elseif ($type === 'documents'): ?>
-            <div class="admin-field"><label>Titulo (opcional)</label><input type="text" name="new_title"></div>
-            <div class="admin-field"><label>Descricao (opcional)</label><input type="text" name="new_description"></div>
-            <div class="admin-field"><label>Documento</label><input type="file" name="new_document" required></div>
-          <?php elseif ($type === 'links'): ?>
-            <div class="admin-field"><label>Titulo</label><input type="text" name="new_title" required></div>
-            <div class="admin-field"><label>URL</label><input type="text" name="new_url" required></div>
+        <?php if ($type === 'gallery-folder'): ?>
+          <?php $savedFolder = normalizeGalleryFolder((string)($settings['folder'] ?? '')); ?>
+          <?php if ($savedFolder !== ''): ?>
+            <details class="admin-folder-gallery-panel">
+              <summary>Adicionar fotos da pasta</summary>
+              <div class="admin-folder-gallery-body">
+                <p class="link-desc">Envie uma imagem por vez e preencha titulo/subtitulo para organizar a galeria.</p>
+                <form method="post" enctype="multipart/form-data" class="admin-grid admin-form-compact">
+                  <input type="hidden" name="action" value="add-item">
+                  <input type="hidden" name="page_slug" value="<?php echo h($selectedPage); ?>">
+                  <input type="hidden" name="component_id" value="<?php echo h($componentId); ?>">
+                  <div class="admin-field"><label>Titulo da foto (opcional)</label><input type="text" name="new_title"></div>
+                  <div class="admin-field"><label>Subtitulo (opcional)</label><input type="text" name="new_subtitle"></div>
+                  <div class="admin-field"><label>Imagem</label><input type="file" name="new_image" accept=".jpg,.jpeg,.png,.webp,.gif" required></div>
+                  <div class="admin-actions">
+                    <button type="submit" class="btn-admin secundario">Adicionar foto</button>
+                  </div>
+                </form>
+              </div>
+            </details>
+          <?php else: ?>
+            <div class="admin-add-item-panel">
+              <h4>Adicionar fotos da pasta</h4>
+              <p class="link-desc">Salve primeiro o nome da pasta para liberar o cadastro de fotos.</p>
+            </div>
           <?php endif; ?>
+        <?php else: ?>
+          <div class="admin-add-item-panel">
+            <h4>Adicionar novo item</h4>
+            <form method="post" enctype="multipart/form-data" class="admin-grid admin-form-compact">
+              <input type="hidden" name="action" value="add-item">
+              <input type="hidden" name="page_slug" value="<?php echo h($selectedPage); ?>">
+              <input type="hidden" name="component_id" value="<?php echo h($componentId); ?>">
 
-          <div class="admin-actions">
-            <button type="submit" class="btn-admin secundario">Adicionar item</button>
+              <?php if ($type === 'cards'): ?>
+                <div class="admin-field"><label>Titulo</label><input type="text" name="new_title" required></div>
+                <div class="admin-field"><label>Descricao</label><input type="text" name="new_description"></div>
+              <?php elseif (in_array($type, ['photo-carousel', 'photo-slider', 'gallery'], true)): ?>
+                <div class="admin-field"><label>Titulo da foto (opcional)</label><input type="text" name="new_title"></div>
+                <div class="admin-field"><label>Subtitulo (opcional)</label><input type="text" name="new_subtitle"></div>
+                <div class="admin-field"><label>Imagem</label><input type="file" name="new_image" accept=".jpg,.jpeg,.png,.webp,.gif" required></div>
+              <?php elseif ($type === 'documents'): ?>
+                <div class="admin-field"><label>Titulo (opcional)</label><input type="text" name="new_title"></div>
+                <div class="admin-field"><label>Descricao (opcional)</label><input type="text" name="new_description"></div>
+                <div class="admin-field"><label>Documento</label><input type="file" name="new_document" required></div>
+              <?php elseif ($type === 'links'): ?>
+                <div class="admin-field"><label>Titulo</label><input type="text" name="new_title" required></div>
+                <div class="admin-field"><label>URL</label><input type="text" name="new_url" required></div>
+              <?php endif; ?>
+
+              <div class="admin-actions">
+                <button type="submit" class="btn-admin secundario">Adicionar item</button>
+              </div>
+            </form>
           </div>
-        </form>
+        <?php endif; ?>
 
       <?php endif; ?>
 
-      <?php if (in_array($type, $itemTypes, true) && !empty($items)): ?>
+      <?php if (in_array($type, $removeFormTypes, true) && !empty($items)): ?>
         <?php foreach ($items as $item): $itemId = (string)($item['id'] ?? ''); ?>
           <form method="post" id="<?php echo h('remove-item-' . $componentId . '-' . $itemId); ?>" class="admin-table-inline-form">
             <input type="hidden" name="action" value="remove-item">

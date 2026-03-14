@@ -2,4 +2,5 @@ uploads/home/**
 uploads/fotos/**
 uploads/docs/**
 data/site.runtime.json
+data/theme.tokens.json
 .DS_Store
